@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Twitter Clone</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div id="login-container" class="center">
+        <h1>Entrar no Twitter</h1>
+        <input type="text" id="username-input" placeholder="Digite seu usuário...">
+        <button onclick="login()">Entrar / Cadastrar</button>
+    </div>
+
+    <div id="app-container" style="display: none;">
+        <header>
+            <span id="user-display"></span>
+            <button onclick="logout()">Sair</button>
+        </header>
+
+        <div class="composer">
+            <textarea id="post-input" placeholder="O que está acontecendo?"></textarea>
+            <button onclick="createPost()">Tweetar</button>
+        </div>
+
+        <div id="timeline">
+            </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
