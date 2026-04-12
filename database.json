@@ -274,7 +274,7 @@
         "avatar": "https://cdn-front.freepik.com/favicons/favicon-96x96.png?w=96&amp;v=2"
       },
       "content": "teste1 começou a seguir você",
-      "read": false,
+      "read": true,
       "timestamp": 1774638211243
     },
     {
@@ -287,7 +287,7 @@
         "avatar": "https://cdn-front.freepik.com/favicons/favicon-96x96.png?w=96&amp;v=2"
       },
       "content": "teste1 começou a seguir você",
-      "read": false,
+      "read": true,
       "timestamp": 1774638220090
     },
     {
@@ -326,7 +326,7 @@
         "avatar": "https://cdn-front.freepik.com/favicons/favicon-96x96.png?w=96&amp;v=2"
       },
       "content": "teste1 começou a seguir você",
-      "read": false,
+      "read": true,
       "timestamp": 1774638227980
     },
     {
@@ -366,7 +366,7 @@
       },
       "content": "teste1 curtiu seu post: \"TESTE1...\"",
       "postId": "1775511504226",
-      "read": false,
+      "read": true,
       "timestamp": 1775511547044
     },
     {
@@ -380,7 +380,7 @@
       },
       "content": "teste1 retweetou seu post: \"TESTE1...\"",
       "postId": "1775511504226",
-      "read": false,
+      "read": true,
       "timestamp": 1775511550638
     },
     {
@@ -394,7 +394,7 @@
       },
       "content": "teste1 comentou no seu post: \"KKKKKKKKKK...\"",
       "postId": "1775511504226",
-      "read": false,
+      "read": true,
       "timestamp": 1775511557705
     },
     {
