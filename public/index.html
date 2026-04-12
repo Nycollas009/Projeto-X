@@ -2,31 +2,280 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Twitter Clone</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Nexus Social | Conecte-se com o mundo</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/emoji-picker-element@1.20.1/dist/emoji-picker-element.min.css">
+    <script type="module" src="https://cdn.jsdelivr.net/npm/emoji-picker-element@1.20.1/dist/emoji-picker-element.min.js"></script>
 </head>
 <body>
+    <div id="toast-container"></div>
 
-    <div id="login-container" class="center">
-        <h1>Entrar no Twitter</h1>
-        <input type="text" id="username-input" placeholder="Digite seu usuário...">
-        <button onclick="login()">Entrar / Cadastrar</button>
+    <!-- ══ LOGIN SCREEN ══ -->
+    <div id="login-container">
+        <div id="login-screen">
+            <div class="login-logo-wrapper">
+                <i class="fas fa-globe x-logo-main"></i>
+            </div>
+            <h1>Nexus Social</h1>
+            <p>Conecte-se com o mundo de forma inovadora</p>
+            <div class="login-form">
+                <input type="text" id="username" placeholder="Nome de usuário" autocomplete="off">
+                <input type="password" id="password" placeholder="Senha">
+                <button class="btn-primary" id="login-btn">
+                    <i class="fas fa-arrow-right"></i> Entrar / Criar conta
+                </button>
+            </div>
+        </div>
     </div>
 
-    <div id="app-container" style="display: none;">
-        <header>
-            <span id="user-display"></span>
-            <button onclick="logout()">Sair</button>
-        </header>
+    <!-- ══ MAIN APP ══ -->
+    <div id="app-container">
 
-        <div class="composer">
-            <textarea id="post-input" placeholder="O que está acontecendo?"></textarea>
-            <button onclick="createPost()">Tweetar</button>
-        </div>
+        <!-- macOS Dock Sidebar -->
+        <nav class="sidebar-nav" id="sidebar-nav">
 
-        <div id="timeline">
+            <!-- Expand/Collapse toggle -->
+            <button class="dock-toggle" id="dock-toggle" title="Expandir sidebar">
+                <i class="fas fa-chevron-right"></i>
+            </button>
+
+            <div class="nav-logo">
+                <i class="fas fa-globe"></i>
+                <span>Nexus</span>
             </div>
+
+            <div class="nav-items">
+                <div class="nav-item active" data-page="home">
+                    <i class="fas fa-house"></i>
+                    <span class="nav-label">Início</span>
+                    <span class="tooltip">Início</span>
+                </div>
+                <div class="nav-item" data-page="explore">
+                    <i class="fas fa-compass"></i>
+                    <span class="nav-label">Explorar</span>
+                    <span class="tooltip">Explorar</span>
+                </div>
+                <div class="nav-item" data-page="notifications">
+                    <i class="fas fa-bell"></i>
+                    <span class="nav-label">Notificações</span>
+                    <span class="tooltip">Notificações</span>
+                    <span id="notification-badge" class="notification-badge">0</span>
+                </div>
+                <div class="nav-item" data-page="messages">
+                    <i class="fas fa-envelope"></i>
+                    <span class="nav-label">Mensagens</span>
+                    <span class="tooltip">Mensagens</span>
+                </div>
+                <div class="nav-item" data-page="bookmarks">
+                    <i class="fas fa-bookmark"></i>
+                    <span class="nav-label">Salvos</span>
+                    <span class="tooltip">Salvos</span>
+                </div>
+
+                <div class="nav-divider"></div>
+
+                <div class="nav-item" data-page="profile">
+                    <i class="fas fa-user-circle"></i>
+                    <span class="nav-label">Perfil</span>
+                    <span class="tooltip">Perfil</span>
+                </div>
+                <div class="nav-item" id="settings-btn">
+                    <i class="fas fa-cog"></i>
+                    <span class="nav-label">Configurações</span>
+                    <span class="tooltip">Configurações</span>
+                </div>
+            </div>
+
+            <div class="nav-footer">
+                <div class="user-info-sidebar" id="sidebar-user-info">
+                    <img src="" id="sidebar-avatar" class="sidebar-avatar" alt="avatar">
+                    <div class="user-details">
+                        <span id="sidebar-username"></span>
+                        <span id="sidebar-handle"></span>
+                    </div>
+                </div>
+                <div class="logout-btn" id="logout-btn">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Sair</span>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content" id="main-content">
+
+            <!-- Home View -->
+            <section id="view-home" class="view-section active">
+                <div class="feed-header">
+                    <h2><i class="fas fa-house"></i> Início</h2>
+                </div>
+
+                <div class="feed-tabs">
+                    <button class="tab-btn active" data-tab="for-you">
+                        <i class="fas fa-star"></i> Para você
+                    </button>
+                    <button class="tab-btn" data-tab="following">
+                        <i class="fas fa-users"></i> Seguindo
+                    </button>
+                </div>
+
+                <div class="create-post-card">
+                    <div class="create-post-header">
+                        <img src="" id="post-avatar" class="create-post-avatar" alt="avatar">
+                        <div class="create-post-input-area">
+                            <textarea id="post-input" placeholder="O que está acontecendo?" maxlength="500"></textarea>
+                            <div class="char-counter">
+                                <span id="char-count">0</span>/500
+                            </div>
+                            <div id="image-preview" class="image-preview" style="display:none;">
+                                <img id="preview-img" alt="preview">
+                                <button id="remove-image" class="remove-image-btn"><i class="fas fa-times"></i></button>
+                            </div>
+                            <div class="create-post-footer">
+                                <div class="post-actions-left">
+                                    <button id="add-image-btn" class="action-btn" title="Adicionar imagem">
+                                        <i class="fas fa-image"></i>
+                                    </button>
+                                    <button id="add-emoji-btn" class="action-btn" title="Adicionar emoji">
+                                        <i class="fas fa-face-smile"></i>
+                                    </button>
+                                    <input type="file" id="image-upload" accept="image/*" style="display:none;">
+                                    <input type="text" id="image-url-input" placeholder="Ou cole URL da imagem" style="display:none;">
+                                </div>
+                                <button id="create-post-btn" class="post-btn">
+                                    <i class="fas fa-paper-plane"></i> Postar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="timeline">
+                    <div class="skeleton-loader">
+                        <div class="skeleton-post"></div>
+                        <div class="skeleton-post"></div>
+                        <div class="skeleton-post"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Explore View -->
+            <section id="view-explore" class="view-section">
+                <div class="feed-header">
+                    <h2><i class="fas fa-compass"></i> Explorar</h2>
+                </div>
+                <div class="search-container">
+                    <div class="search-box">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="main-search" placeholder="Buscar pessoas, tópicos..." class="search-input">
+                    </div>
+                    <div id="search-results" style="margin-top:16px;"></div>
+                </div>
+            </section>
+
+            <!-- Notifications View -->
+            <section id="view-notifications" class="view-section">
+                <div class="feed-header">
+                    <h2><i class="fas fa-bell"></i> Notificações</h2>
+                </div>
+                <div id="notifications-list"></div>
+            </section>
+
+            <!-- Messages View -->
+            <section id="view-messages" class="view-section">
+                <div class="feed-header">
+                    <h2><i class="fas fa-envelope"></i> Mensagens</h2>
+                </div>
+                <div class="messages-container">
+                    <div class="conversations-list" id="conversations-list"></div>
+                    <div class="messages-area" id="messages-area">
+                        <div class="empty-messages">
+                            <i class="fas fa-inbox"></i>
+                            <p>Selecione uma conversa</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Bookmarks View -->
+            <section id="view-bookmarks" class="view-section">
+                <div class="feed-header">
+                    <h2><i class="fas fa-bookmark"></i> Posts Salvos</h2>
+                </div>
+                <div id="bookmarks-list"></div>
+            </section>
+
+            <!-- Profile View -->
+            <section id="view-profile" class="view-section">
+                <div id="profile-container"></div>
+            </section>
+
+        </main>
+
+        <!-- Right Sidebar -->
+        <aside class="right-sidebar">
+            <div class="sidebar-card" id="user-stats-card">
+                <div class="card-header">
+                    <i class="fas fa-chart-line"></i>
+                    <h3>Estatísticas</h3>
+                </div>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <span class="stat-value" id="followers-count">0</span>
+                        <span class="stat-label">Seguidores</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-value" id="following-count">0</span>
+                        <span class="stat-label">Seguindo</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-value" id="posts-count">0</span>
+                        <span class="stat-label">Posts</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sidebar-card" id="trending-card">
+                <div class="card-header">
+                    <i class="fas fa-fire"></i>
+                    <h3>Tendências</h3>
+                </div>
+                <div id="trending-topics">
+                    <div class="skeleton-trend"></div>
+                    <div class="skeleton-trend"></div>
+                    <div class="skeleton-trend"></div>
+                </div>
+            </div>
+
+            <div class="sidebar-card" id="suggestions-card">
+                <div class="card-header">
+                    <i class="fas fa-users"></i>
+                    <h3>Quem seguir</h3>
+                </div>
+                <div id="suggestions-list">
+                    <div class="skeleton-suggestion"></div>
+                    <div class="skeleton-suggestion"></div>
+                </div>
+            </div>
+
+            <div class="sidebar-footer">
+                <p>© 2025 Nexus Social</p>
+                <p>Conecte-se com o mundo</p>
+            </div>
+        </aside>
+    </div>
+
+    <!-- Image Modal -->
+    <div id="image-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <img id="modal-image" src="" alt="imagem">
+        </div>
     </div>
 
     <script src="script.js"></script>

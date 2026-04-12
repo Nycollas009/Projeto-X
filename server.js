@@ -1,103 +1,493 @@
 const express = require('express');
 const fs = require('fs');
 const cors = require('cors');
+const http = require('http');
+const WebSocket = require('ws');
 const path = require('path');
 
 const app = express();
+const port = 3000;
+
 app.use(cors());
 app.use(express.json());
-app.use(express.static('public')); // Serve os arquivos da pasta public
+app.use(express.static('public'));
 
 const DB_FILE = './database.json';
 
-// Função auxiliar para ler o "banco de dados" JSON
-function readDB() {
-    const data = fs.readFileSync(DB_FILE);
-    return JSON.parse(data);
+// Inicializar banco de dados se não existir
+if (!fs.existsSync(DB_FILE)) {
+    const initialDB = {
+        users: [],
+        posts: [],
+        messages: [],
+        notifications: []
+    };
+    fs.writeFileSync(DB_FILE, JSON.stringify(initialDB, null, 2));
 }
 
-// Função auxiliar para salvar no "banco de dados" JSON
-function writeDB(data) {
-    fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2));
+const readDB = () => JSON.parse(fs.readFileSync(DB_FILE, 'utf-8'));
+const writeDB = (data) => fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2));
+
+const server = http.createServer(app);
+const wss = new WebSocket.Server({ server });
+
+let connectedClients = [];
+
+wss.on('connection', (ws) => {
+    console.log('🔌 Novo cliente conectado');
+    connectedClients.push(ws);
+    
+    ws.on('close', () => {
+        console.log('🔌 Cliente desconectado');
+        connectedClients = connectedClients.filter(client => client !== ws);
+    });
+});
+
+function broadcastUpdate(type, data) {
+    connectedClients.forEach(client => {
+        if (client.readyState === WebSocket.OPEN) {
+            client.send(JSON.stringify({ type, data }));
+        }
+    });
 }
 
-// --- ROTAS DE USUÁRIO ---
-
-// Cadastro e Login Simples
-app.post('/api/login', (req, res) => {
-    const { username } = req.body;
+// ========== AUTENTICAÇÃO ==========
+app.post('/login-register', (req, res) => {
+    const { username, password } = req.body;
     const db = readDB();
-    
     let user = db.users.find(u => u.username === username);
-    
+
     if (!user) {
-        // Se não existe, cadastra na hora
-        user = { id: Date.now(), username: username };
+        user = { 
+            id: Date.now().toString(), 
+            username, 
+            password, 
+            avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${username}`,
+            coverImage: `https://picsum.photos/1200/300?random=${Date.now()}`,
+            bio: "✨ Bem-vindo ao Nexus Social! Conecte-se com o mundo.",
+            location: "🌍 Planeta Terra",
+            website: "",
+            joinDate: new Date().toISOString(),
+            following: [],
+            followers: [],
+            likedPosts: []
+        };
         db.users.push(user);
         writeDB(db);
+        console.log(`📝 Novo usuário criado: ${username}`);
     }
     
-    res.json(user);
+    const { password: _, ...userWithoutPassword } = user;
+    res.json({ user: userWithoutPassword });
 });
 
-// --- ROTAS DE POSTAGENS ---
-
-// Listar todos os posts
-app.get('/api/posts', (req, res) => {
+// ========== USUÁRIOS ==========
+app.get('/users', (req, res) => {
     const db = readDB();
-    // Retorna os posts do mais novo para o mais antigo
-    const sortedPosts = [...db.posts].reverse();
-    res.json(sortedPosts);
+    const publicUsers = db.users.map(({ password, ...u }) => u);
+    res.json(publicUsers);
 });
 
-// Criar novo post
-app.post('/api/posts', (req, res) => {
-    const { content, userId, username } = req.body;
+app.get('/users/:id', (req, res) => {
+    const db = readDB();
+    const user = db.users.find(u => u.id === req.params.id);
+    if (user) {
+        const { password, ...publicUser } = user;
+        res.json(publicUser);
+    } else {
+        res.status(404).json({ error: "Usuário não encontrado" });
+    }
+});
+
+app.patch('/users/:id', (req, res) => {
+    const { id } = req.params;
+    const { avatar, coverImage, bio, location, website } = req.body;
+    const db = readDB();
+    const userIndex = db.users.findIndex(u => u.id === id);
+
+    if (userIndex !== -1) {
+        if (avatar !== undefined) db.users[userIndex].avatar = avatar;
+        if (coverImage !== undefined) db.users[userIndex].coverImage = coverImage;
+        if (bio !== undefined) db.users[userIndex].bio = bio;
+        if (location !== undefined) db.users[userIndex].location = location;
+        if (website !== undefined) db.users[userIndex].website = website;
+        writeDB(db);
+        
+        const { password, ...updatedUser } = db.users[userIndex];
+        broadcastUpdate('user_updated', updatedUser);
+        res.json(updatedUser);
+    } else {
+        res.status(404).json({ error: "Usuário não encontrado" });
+    }
+});
+
+app.post('/users/follow', (req, res) => {
+    const { followerId, followingId } = req.body;
     const db = readDB();
     
+    const follower = db.users.find(u => u.id === followerId);
+    const following = db.users.find(u => u.id === followingId);
+    
+    if (follower && following) {
+        if (!follower.following.includes(followingId)) {
+            follower.following.push(followingId);
+            following.followers.push(followerId);
+            writeDB(db);
+            
+            // Criar notificação
+            const notification = {
+                id: Date.now().toString(),
+                userId: followingId,
+                type: 'follow',
+                fromUser: {
+                    id: followerId,
+                    username: follower.username,
+                    avatar: follower.avatar
+                },
+                content: `${follower.username} começou a seguir você`,
+                read: false,
+                timestamp: Date.now()
+            };
+            db.notifications.push(notification);
+            writeDB(db);
+            
+            broadcastUpdate('follow_update', { followerId, followingId, action: 'follow' });
+            broadcastUpdate('new_notification', notification);
+            res.json({ success: true, message: 'Agora você está seguindo!' });
+        } else {
+            res.json({ success: false, message: 'Já está seguindo' });
+        }
+    } else {
+        res.status(404).json({ error: "Usuário não encontrado" });
+    }
+});
+
+app.post('/users/unfollow', (req, res) => {
+    const { followerId, followingId } = req.body;
+    const db = readDB();
+    
+    const follower = db.users.find(u => u.id === followerId);
+    const following = db.users.find(u => u.id === followingId);
+    
+    if (follower && following) {
+        follower.following = follower.following.filter(id => id !== followingId);
+        following.followers = following.followers.filter(id => id !== followerId);
+        writeDB(db);
+        
+        broadcastUpdate('follow_update', { followerId, followingId, action: 'unfollow' });
+        res.json({ success: true, message: 'Você deixou de seguir' });
+    } else {
+        res.status(404).json({ error: "Usuário não encontrado" });
+    }
+});
+
+// ========== POSTS ==========
+app.get('/posts', (req, res) => {
+    const db = readDB();
+    res.json(db.posts.sort((a, b) => b.timestamp - a.timestamp));
+});
+
+app.get('/posts/user/:userId', (req, res) => {
+    const db = readDB();
+    const userPosts = db.posts.filter(p => p.userId === req.params.userId);
+    res.json(userPosts.sort((a, b) => b.timestamp - a.timestamp));
+});
+
+app.post('/posts', (req, res) => {
+    const { userId, username, avatar, content, imageUrl } = req.body;
+    const db = readDB();
     const newPost = {
-        id: Date.now(),
+        id: Date.now().toString(),
         userId,
         username,
+        avatar,
         content,
-        likes: [] // Lista de IDs de usuários que curtiram
+        imageUrl: imageUrl || null,
+        likes: [],
+        comments: [],
+        timestamp: Date.now()
     };
-    
     db.posts.push(newPost);
     writeDB(db);
-    res.status(201).json(newPost);
-});
-
-// Deletar post
-app.delete('/api/posts/:id', (req, res) => {
-    const { id } = req.params;
-    const db = readDB();
     
-    db.posts = db.posts.filter(p => p.id != id);
-    writeDB(db);
-    res.send({ message: "Post deletado" });
+    broadcastUpdate('new_post', newPost);
+    res.json(newPost);
 });
 
-// Curtir/Descurtir post
-app.post('/api/like/:id', (req, res) => {
-    const { id } = req.params;
+app.delete('/posts/:postId', (req, res) => {
+    const { postId } = req.params;
     const { userId } = req.body;
     const db = readDB();
     
-    const post = db.posts.find(p => p.id == id);
-    if (post) {
-        const index = post.likes.indexOf(userId);
-        if (index === -1) {
-            post.likes.push(userId); // Curte
-        } else {
-            post.likes.splice(index, 1); // Descurte
-        }
+    const postIndex = db.posts.findIndex(p => p.id === postId);
+    if (postIndex !== -1 && db.posts[postIndex].userId === userId) {
+        const deletedPost = db.posts.splice(postIndex, 1)[0];
         writeDB(db);
+        
+        broadcastUpdate('post_deleted', { postId, userId });
+        res.json({ success: true, message: 'Post excluído com sucesso!' });
+    } else {
+        res.status(403).json({ error: "Você não tem permissão para excluir este post" });
     }
-    res.json(post);
 });
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Servidor rodando na porta ${PORT}`);
+app.post('/posts/like', (req, res) => {
+    const { postId, userId } = req.body;
+    const db = readDB();
+    const post = db.posts.find(p => p.id === postId);
+    
+    if (post) {
+        const likeIndex = post.likes.indexOf(userId);
+        if (likeIndex === -1) {
+            post.likes.push(userId);
+            // Criar notificação de like
+            const postOwner = db.users.find(u => u.id === post.userId);
+            if (postOwner && postOwner.id !== userId) {
+                const liker = db.users.find(u => u.id === userId);
+                const notification = {
+                    id: Date.now().toString(),
+                    userId: post.userId,
+                    type: 'like',
+                    fromUser: {
+                        id: userId,
+                        username: liker.username,
+                        avatar: liker.avatar
+                    },
+                    content: `${liker.username} curtiu seu post: "${post.content.substring(0, 50)}..."`,
+                    postId: postId,
+                    read: false,
+                    timestamp: Date.now()
+                };
+                db.notifications.push(notification);
+                writeDB(db);
+                broadcastUpdate('new_notification', notification);
+            }
+        } else {
+            post.likes.splice(likeIndex, 1);
+        }
+        writeDB(db);
+        
+        broadcastUpdate('like_update', { postId, likes: post.likes });
+        res.json({ likes: post.likes });
+    } else {
+        res.status(404).json({ error: "Post não encontrado" });
+    }
+});
+
+app.post('/posts/comment', (req, res) => {
+    const { postId, userId, username, avatar, content } = req.body;
+    const db = readDB();
+    const post = db.posts.find(p => p.id === postId);
+    
+    if (post) {
+        const comment = {
+            id: Date.now().toString(),
+            userId,
+            username,
+            avatar,
+            content,
+            timestamp: Date.now()
+        };
+        post.comments.push(comment);
+        writeDB(db);
+        
+        // Criar notificação de comentário
+        const postOwner = db.users.find(u => u.id === post.userId);
+        if (postOwner && postOwner.id !== userId) {
+            const notification = {
+                id: Date.now().toString(),
+                userId: post.userId,
+                type: 'comment',
+                fromUser: {
+                    id: userId,
+                    username: username,
+                    avatar: avatar
+                },
+                content: `${username} comentou no seu post: "${content.substring(0, 50)}..."`,
+                postId: postId,
+                read: false,
+                timestamp: Date.now()
+            };
+            db.notifications.push(notification);
+            writeDB(db);
+            broadcastUpdate('new_notification', notification);
+        }
+        
+        broadcastUpdate('new_comment', { postId, comment });
+        res.json({ success: true, comment });
+    } else {
+        res.status(404).json({ error: "Post não encontrado" });
+    }
+});
+
+// ========== INICIO DA CORREÇÃO - ENDPOINT RETWEET ==========
+app.post('/posts/retweet', (req, res) => {
+    const { postId, userId } = req.body;
+    const db = readDB();
+    
+    // Encontrar o post original
+    const post = db.posts.find(p => p.id === postId);
+    
+    if (post) {
+        // Inicializar array de retweets se não existir
+        if (!post.retweets) post.retweets = [];
+        
+        const retweetIndex = post.retweets.indexOf(userId);
+        let isRetweeting = false;
+        
+        if (retweetIndex === -1) {
+            // Adicionar retweet
+            post.retweets.push(userId);
+            isRetweeting = true;
+        } else {
+            // Remover retweet
+            post.retweets.splice(retweetIndex, 1);
+            isRetweeting = false;
+        }
+        
+        writeDB(db);
+        
+        // Criar notificação (apenas se não for o próprio usuário)
+        if (isRetweeting && post.userId !== userId) {
+            const retweeter = db.users.find(u => u.id === userId);
+            if (retweeter) {
+                const notification = {
+                    id: Date.now().toString(),
+                    userId: post.userId,
+                    type: 'retweet',
+                    fromUser: {
+                        id: userId,
+                        username: retweeter.username,
+                        avatar: retweeter.avatar
+                    },
+                    content: `${retweeter.username} retweetou seu post: "${post.content.substring(0, 50)}..."`,
+                    postId: postId,
+                    read: false,
+                    timestamp: Date.now()
+                };
+                db.notifications.push(notification);
+                writeDB(db);
+                broadcastUpdate('new_notification', notification);
+            }
+        }
+        
+        broadcastUpdate('retweet_update', { postId, retweets: post.retweets });
+        res.json({ retweets: post.retweets });
+    } else {
+        res.status(404).json({ error: "Post não encontrado" });
+    }
+});
+// ========== FIM DA CORREÇÃO - ENDPOINT RETWEET ==========
+
+// ========== INICIO DA CORREÇÃO - ENDPOINT DELETE MESSAGE ==========
+app.delete('/messages/:messageId', (req, res) => {
+    const { messageId } = req.params;
+    const { userId } = req.body;
+    const db = readDB();
+    
+    const messageIndex = db.messages.findIndex(m => m.id === messageId);
+    
+    if (messageIndex !== -1) {
+        const message = db.messages[messageIndex];
+        // Verificar se o usuário é o remetente da mensagem
+        if (message.from === userId) {
+            db.messages.splice(messageIndex, 1);
+            writeDB(db);
+            
+            broadcastUpdate('message_deleted', { messageId });
+            res.json({ success: true, message: 'Mensagem excluída com sucesso!' });
+        } else {
+            res.status(403).json({ error: "Você não tem permissão para excluir esta mensagem" });
+        }
+    } else {
+        res.status(404).json({ error: "Mensagem não encontrada" });
+    }
+});
+// ========== FIM DA CORREÇÃO - ENDPOINT DELETE MESSAGE ==========
+
+// ========== INICIO DA CORREÇÃO - ENDPOINT LIKE MESSAGE ==========
+app.post('/messages/:messageId/like', (req, res) => {
+    const { messageId } = req.params;
+    const { userId } = req.body;
+    const db = readDB();
+    
+    const message = db.messages.find(m => m.id === messageId);
+    
+    if (message) {
+        if (!message.likedBy) message.likedBy = [];
+        
+        const likeIndex = message.likedBy.indexOf(userId);
+        let isLiked = false;
+        
+        if (likeIndex === -1) {
+            message.likedBy.push(userId);
+            isLiked = true;
+        } else {
+            message.likedBy.splice(likeIndex, 1);
+            isLiked = false;
+        }
+        
+        writeDB(db);
+        
+        broadcastUpdate('message_like_update', { messageId, likedBy: message.likedBy });
+        res.json({ liked: isLiked, likedBy: message.likedBy });
+    } else {
+        res.status(404).json({ error: "Mensagem não encontrada" });
+    }
+});
+// ========== FIM DA CORREÇÃO - ENDPOINT LIKE MESSAGE ==========
+
+// ========== MENSAGENS ==========
+app.get('/messages/:userId/:otherUserId', (req, res) => {
+    const db = readDB();
+    const { userId, otherUserId } = req.params;
+    const messages = db.messages.filter(m => 
+        (m.from === userId && m.to === otherUserId) ||
+        (m.from === otherUserId && m.to === userId)
+    ).sort((a, b) => a.timestamp - b.timestamp);
+    res.json(messages);
+});
+
+app.post('/messages', (req, res) => {
+    const { from, to, content } = req.body;
+    const db = readDB();
+    const message = {
+        id: Date.now().toString(),
+        from,
+        to,
+        content,
+        timestamp: Date.now(),
+        read: false
+    };
+    db.messages.push(message);
+    writeDB(db);
+    
+    broadcastUpdate('new_message', message);
+    res.json(message);
+});
+
+// ========== NOTIFICAÇÕES ==========
+app.get('/notifications/:userId', (req, res) => {
+    const db = readDB();
+    const notifications = db.notifications.filter(n => n.userId === req.params.userId);
+    res.json(notifications.sort((a, b) => b.timestamp - a.timestamp));
+});
+
+app.post('/notifications/:notificationId/read', (req, res) => {
+    const { notificationId } = req.params;
+    const db = readDB();
+    const notification = db.notifications.find(n => n.id === notificationId);
+    if (notification) {
+        notification.read = true;
+        writeDB(db);
+        res.json({ success: true });
+    } else {
+        res.status(404).json({ error: "Notificação não encontrada" });
+    }
+});
+
+server.listen(port, '0.0.0.0', () => {
+    console.log(`\n🚀 Nexus Social rodando em http://localhost:${port}`);
+    console.log(`📡 WebSocket ativo para atualizações em tempo real`);
+    console.log(`✨ Layout inovador pronto para apresentação!\n`);
 });

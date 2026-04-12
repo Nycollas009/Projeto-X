@@ -1,90 +1,1233 @@
-let currentUser = JSON.parse(localStorage.getItem('user')) || null;
+// ========================================
+//  NEXUS SOCIAL — script.js (v2 — fixed)
+// ========================================
+console.log('🚀 Nexus Social v2 — Carregando...');
 
-// Ao carregar a página, verifica se já está logado
-window.onload = () => {
-    if (currentUser) {
-        showApp();
+const API_URL = 'http://localhost:3000';
+
+let currentUser        = null;
+let ws                 = null;
+let currentView        = 'home';
+let currentConversation= null;
+let viewingUserId      = null;
+let savedPosts         = JSON.parse(localStorage.getItem('savedPosts') || '[]');
+let currentImageFile   = null;
+let currentFeedTab     = 'for-you';
+let allPosts           = [];
+let unreadNotificationsCount = 0;
+let sidebarExpanded    = false;
+
+// ════════════════════════════════════════
+//  DOM READY
+// ════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('📱 DOM Carregado');
+
+    const saved = localStorage.getItem('user');
+    if (saved) {
+        try {
+            currentUser = JSON.parse(saved);
+            showApp();
+        } catch (e) {
+            localStorage.removeItem('user');
+        }
     }
-};
 
-async function login() {
-    const username = document.getElementById('username-input').value;
-    if (!username) return alert("Digite um nome!");
+    setupEventListeners();
+    setupCharCounter();
+    setupImageUpload();
+});
 
-    const response = await fetch('/api/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username })
+// ════════════════════════════════════════
+//  EVENT LISTENERS
+// ════════════════════════════════════════
+function setupEventListeners() {
+    // Login
+    document.getElementById('login-btn')?.addEventListener('click', login);
+    document.getElementById('username')?.addEventListener('keypress', e => { if (e.key === 'Enter') login(); });
+    document.getElementById('password')?.addEventListener('keypress', e => { if (e.key === 'Enter') login(); });
+
+    // Nav
+    document.querySelectorAll('.nav-item[data-page]').forEach(item => {
+        item.addEventListener('click', () => navigateTo(item.dataset.page));
     });
 
-    currentUser = await response.json();
-    localStorage.setItem('user', JSON.stringify(currentUser));
-    showApp();
+    document.getElementById('settings-btn')?.addEventListener('click', openSettingsModal);
+    document.getElementById('logout-btn')?.addEventListener('click', logout);
+    document.getElementById('sidebar-user-info')?.addEventListener('click', () => navigateTo('profile'));
+
+    // macOS dock toggle
+    document.getElementById('dock-toggle')?.addEventListener('click', toggleSidebar);
+
+    // Post
+    document.getElementById('create-post-btn')?.addEventListener('click', createPost);
+
+    // Search
+    document.getElementById('main-search')?.addEventListener('input', debounce(searchUsers, 300));
+
+    // Modal
+    document.querySelector('.close-modal')?.addEventListener('click', () => {
+        document.getElementById('image-modal')?.classList.remove('active');
+    });
+    document.getElementById('image-modal')?.addEventListener('click', e => {
+        if (e.target === document.getElementById('image-modal'))
+            document.getElementById('image-modal').classList.remove('active');
+    });
+
+    // Feed tabs
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            currentFeedTab = btn.dataset.tab;
+            filterAndDisplayPosts();
+        });
+    });
 }
 
-function showApp() {
-    document.getElementById('login-container').style.display = 'none';
-    document.getElementById('app-container').style.display = 'block';
-    document.getElementById('user-display').innerText = `@${currentUser.username}`;
-    loadPosts();
-    // Atualiza o feed a cada 5 segundos automaticamente
-    setInterval(loadPosts, 5000);
+// ════════════════════════════════════════
+//  macOS DOCK TOGGLE
+// ════════════════════════════════════════
+function toggleSidebar() {
+    sidebarExpanded = !sidebarExpanded;
+    const nav  = document.getElementById('sidebar-nav');
+    const main = document.getElementById('main-content');
+    nav.classList.toggle('expanded', sidebarExpanded);
+    main.classList.toggle('sidebar-expanded', sidebarExpanded);
+
+    const icon = document.querySelector('#dock-toggle i');
+    if (icon) {
+        icon.style.transform = sidebarExpanded ? 'rotate(180deg)' : 'rotate(0deg)';
+    }
+}
+
+// ════════════════════════════════════════
+//  CHAR COUNTER
+// ════════════════════════════════════════
+function setupCharCounter() {
+    const input = document.getElementById('post-input');
+    const counter = document.getElementById('char-count');
+    if (!input || !counter) return;
+
+    input.addEventListener('input', () => {
+        const n = input.value.length;
+        counter.textContent = n;
+        const wrap = counter.parentElement;
+        wrap.className = 'char-counter';
+        if (n > 480) wrap.classList.add('danger');
+        else if (n > 400) wrap.classList.add('warning');
+    });
+}
+
+// ════════════════════════════════════════
+//  IMAGE UPLOAD
+// ════════════════════════════════════════
+function setupImageUpload() {
+    const addBtn   = document.getElementById('add-image-btn');
+    const upload   = document.getElementById('image-upload');
+    const removeBtn= document.getElementById('remove-image');
+    const preview  = document.getElementById('image-preview');
+    const prevImg  = document.getElementById('preview-img');
+
+    if (addBtn && upload) {
+        addBtn.addEventListener('click', () => upload.click());
+        upload.addEventListener('change', e => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const valid = ['image/png','image/jpeg','image/jpg','image/webp','image/gif'];
+            if (!valid.includes(file.type)) { showToast('Formato inválido. Use PNG, JPG, WEBP ou GIF.', 'error'); return; }
+            if (file.size > 5 * 1024 * 1024) { showToast('Imagem muito grande. Máximo 5MB.', 'error'); return; }
+
+            currentImageFile = file;
+            const reader = new FileReader();
+            reader.onload = ev => {
+                prevImg.src = ev.target.result;
+                preview.style.display = 'block';
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+
+    removeBtn?.addEventListener('click', () => {
+        currentImageFile = null;
+        if (preview) preview.style.display = 'none';
+        if (prevImg) prevImg.src = '';
+        if (upload) upload.value = '';
+    });
+}
+
+function fileToBase64(file) {
+    return new Promise((resolve, reject) => {
+        const r = new FileReader();
+        r.onload  = () => resolve(r.result);
+        r.onerror = reject;
+        r.readAsDataURL(file);
+    });
+}
+
+// ════════════════════════════════════════
+//  EMOJI PICKER
+// ════════════════════════════════════════
+let currentEmojiTarget = null;
+
+function setupEmojiPicker() {
+    const btn   = document.getElementById('add-emoji-btn');
+    const input = document.getElementById('post-input');
+    if (!btn || !input) return;
+
+    // Create picker once
+    let picker = btn.parentElement.querySelector('emoji-picker');
+    if (!picker) {
+        picker = document.createElement('emoji-picker');
+        picker.style.cssText = 'position:absolute;bottom:50px;left:0;z-index:1000;display:none;border-radius:16px;border:1px solid var(--border);box-shadow:var(--shadow);width:340px;height:380px;';
+        btn.parentElement.style.position = 'relative';
+        btn.parentElement.appendChild(picker);
+
+        picker.addEventListener('emoji-click', ev => {
+            const emoji = ev.detail.unicode;
+            if (currentEmojiTarget) insertAtCursor(currentEmojiTarget, emoji);
+            picker.style.display = 'none';
+        });
+
+        document.addEventListener('click', ev => {
+            if (!btn.contains(ev.target) && !picker.contains(ev.target))
+                picker.style.display = 'none';
+        });
+    }
+
+    btn.addEventListener('click', e => {
+        e.stopPropagation();
+        currentEmojiTarget = input;
+        picker.style.display = picker.style.display === 'none' ? 'block' : 'none';
+    });
+}
+
+function setupChatEmojiPicker() {
+    const btn   = document.getElementById('chat-emoji-btn');
+    const input = document.getElementById('message-input');
+    if (!btn || !input) return;
+
+    let picker = btn.parentElement.querySelector('emoji-picker.chat-picker');
+    if (!picker) {
+        picker = document.createElement('emoji-picker');
+        picker.classList.add('chat-picker');
+        picker.style.cssText = 'position:absolute;bottom:60px;left:0;z-index:1000;display:none;border-radius:16px;border:1px solid var(--border);box-shadow:var(--shadow);width:320px;height:360px;';
+        const wrap = btn.parentElement;
+        wrap.style.position = 'relative';
+        wrap.appendChild(picker);
+
+        picker.addEventListener('emoji-click', ev => {
+            insertAtCursor(input, ev.detail.unicode);
+            picker.style.display = 'none';
+        });
+
+        document.addEventListener('click', ev => {
+            if (!btn.contains(ev.target) && !picker.contains(ev.target))
+                picker.style.display = 'none';
+        });
+    }
+
+    btn.addEventListener('click', e => {
+        e.stopPropagation();
+        picker.style.display = picker.style.display === 'none' ? 'block' : 'none';
+    });
+}
+
+function insertAtCursor(el, text) {
+    const start = el.selectionStart;
+    const end   = el.selectionEnd;
+    el.value = el.value.slice(0, start) + text + el.value.slice(end);
+    el.focus();
+    el.setSelectionRange(start + text.length, start + text.length);
+    // Update char counter if post input
+    if (el.id === 'post-input') {
+        const cc = document.getElementById('char-count');
+        if (cc) cc.textContent = el.value.length;
+    }
+}
+
+// ════════════════════════════════════════
+//  AUTH
+// ════════════════════════════════════════
+async function login() {
+    const username = document.getElementById('username').value.trim();
+    const password = document.getElementById('password').value;
+    if (!username || !password) { showToast('Preencha usuário e senha', 'warning'); return; }
+
+    try {
+        const res = await fetch(`${API_URL}/login-register`, {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({ username, password })
+        });
+        if (res.ok) {
+            const data = await res.json();
+            currentUser = data.user;
+            localStorage.setItem('user', JSON.stringify(currentUser));
+            showToast(`Bem-vindo, ${currentUser.username}! 👋`, 'success');
+            showApp();
+        } else {
+            showToast('Erro ao fazer login', 'error');
+        }
+    } catch (err) {
+        showToast('Servidor offline. Verifique se o servidor está rodando.', 'error');
+    }
 }
 
 function logout() {
     localStorage.removeItem('user');
+    localStorage.removeItem('savedPosts');
     location.reload();
 }
 
+// ════════════════════════════════════════
+//  SHOW APP
+// ════════════════════════════════════════
+function showApp() {
+    document.getElementById('login-container').style.display = 'none';
+    document.getElementById('app-container').style.display  = 'block';
+    updateUI();
+    navigateTo('home');
+    connectWebSocket();
+    loadTrendingTopics();
+    loadSuggestions();
+    updateUserStats();
+    setupEmojiPicker();
+}
+
+function updateUI() {
+    ['sidebar-avatar','post-avatar'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el && currentUser) el.src = currentUser.avatar;
+    });
+    const su = document.getElementById('sidebar-username');
+    const sh = document.getElementById('sidebar-handle');
+    if (su) su.textContent = currentUser.username;
+    if (sh) sh.textContent = `@${currentUser.username}`;
+}
+
+// ════════════════════════════════════════
+//  NAVIGATION
+// ════════════════════════════════════════
+function navigateTo(page, username = null) {
+    currentView = page;
+
+    document.querySelectorAll('.view-section').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+
+    const activeNav = document.querySelector(`.nav-item[data-page="${page}"]`);
+    if (activeNav) activeNav.classList.add('active');
+
+    if (page === 'profile' && username) {
+        loadProfileByUsername(username);
+        document.getElementById('view-profile')?.classList.add('active');
+    } else {
+        const target = document.getElementById(`view-${page}`);
+        if (target) target.classList.add('active');
+    }
+
+    switch (page) {
+        case 'home':         loadPosts();            break;
+        case 'explore':      loadExplore();          break;
+        case 'messages':     loadConversations();    break;
+        case 'notifications':loadNotifications();    break;
+        case 'bookmarks':    loadBookmarks();        break;
+        case 'profile':
+            if (!username) loadProfileData(currentUser.id);
+            break;
+    }
+}
+
+async function viewUserProfile(userId) {
+    try {
+        const res  = await fetch(`${API_URL}/users/${userId}`);
+        const user = await res.json();
+        if (user?.username) navigateTo('profile', user.username);
+    } catch (e) { showToast('Erro ao carregar perfil', 'error'); }
+}
+
+async function loadProfileByUsername(username) {
+    try {
+        const res   = await fetch(`${API_URL}/users`);
+        const users = await res.json();
+        const user  = users.find(u => u.username === username);
+        if (!user) { showToast('Usuário não encontrado', 'error'); navigateTo('home'); return; }
+        viewingUserId = user.id;
+        await loadProfileData(user.id);
+        document.getElementById('view-profile')?.classList.add('active');
+    } catch (e) { showToast('Erro ao carregar perfil', 'error'); }
+}
+
+// ════════════════════════════════════════
+//  POSTS
+// ════════════════════════════════════════
+async function createPost() {
+    const content = document.getElementById('post-input').value.trim();
+    let imageUrl  = document.getElementById('image-url-input')?.value.trim() || '';
+
+    if (!content && !imageUrl && !currentImageFile) {
+        showToast('Digite algo ou adicione uma imagem!', 'warning');
+        return;
+    }
+
+    if (currentImageFile) {
+        try { imageUrl = await fileToBase64(currentImageFile); }
+        catch { showToast('Erro ao processar imagem', 'error'); return; }
+    }
+
+    try {
+        const res = await fetch(`${API_URL}/posts`, {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({
+                userId:   currentUser.id,
+                username: currentUser.username,
+                avatar:   currentUser.avatar,
+                content,
+                imageUrl
+            })
+        });
+
+        if (res.ok) {
+            document.getElementById('post-input').value    = '';
+            document.getElementById('image-url-input').value = '';
+            document.getElementById('char-count').textContent = '0';
+            const prev = document.getElementById('image-preview');
+            if (prev) prev.style.display = 'none';
+            currentImageFile = null;
+            showToast('Post publicado! 🎉', 'success');
+            loadPosts();
+        } else {
+            showToast('Erro ao publicar post', 'error');
+        }
+    } catch { showToast('Erro ao publicar post', 'error'); }
+}
+
 async function loadPosts() {
-    const response = await fetch('/api/posts');
-    const posts = await response.json();
+    try {
+        const res = await fetch(`${API_URL}/posts`);
+        allPosts  = await res.json();
+        filterAndDisplayPosts();
+    } catch { showToast('Erro ao carregar posts', 'error'); }
+}
+
+function filterAndDisplayPosts() {
+    let posts = [...allPosts];
+
+    if (currentFeedTab === 'following') {
+        const following = currentUser.following || [];
+        if (following.length === 0) {
+            displayPosts([]);
+            return;
+        }
+        posts = posts.filter(p => following.includes(p.userId));
+    }
+
+    posts.sort((a, b) => b.timestamp - a.timestamp);
+    displayPosts(posts);
+}
+
+function displayPosts(posts) {
     const timeline = document.getElementById('timeline');
-    
-    timeline.innerHTML = posts.map(post => `
-        <div class="post">
-            <b>@${post.username}</b>
-            <p>${post.content}</p>
-            <div class="post-actions">
-                <button class="btn-like ${post.likes.includes(currentUser.id) ? 'liked' : ''}" 
-                        onclick="likePost(${post.id})">
-                    ❤️ ${post.likes.length}
-                </button>
-                ${post.userId === currentUser.id ? 
-                    `<button class="btn-delete" onclick="deletePost(${post.id})">Excluir</button>` : ''}
+    if (!timeline) return;
+
+    if (posts.length === 0) {
+        const msg = currentFeedTab === 'following'
+            ? 'Siga mais pessoas para ver posts aqui!'
+            : 'Seja o primeiro a postar algo!';
+        timeline.innerHTML = `
+            <div class="empty-state">
+                <i class="fas fa-newspaper"></i>
+                <p>Nenhum post para mostrar</p>
+                <span>${msg}</span>
+            </div>`;
+        return;
+    }
+
+    timeline.innerHTML = posts.map(createPostElement).join('');
+    updatePostsCount();
+}
+
+function createPostElement(post) {
+    const isLiked    = post.likes?.includes(currentUser.id);
+    const isRetweet  = post.retweets?.includes(currentUser.id);
+    const isSaved    = savedPosts.includes(post.id);
+    const isOwnPost  = post.userId === currentUser.id;
+
+    const rtIndicator = post.retweetedBy
+        ? `<div class="retweet-indicator"><i class="fas fa-retweet"></i><span>${escapeHtml(post.retweetedBy)} retweetou</span></div>`
+        : '';
+
+    return `
+    <div class="post" data-post-id="${post.id}">
+        ${rtIndicator}
+        <div class="post-header">
+            <img src="${escapeHtml(post.avatar || '')}" class="post-avatar" onclick="viewUserProfile('${post.userId}')" alt="avatar">
+            <div class="post-info">
+                <div class="post-user">
+                    <span class="post-username" onclick="viewUserProfile('${post.userId}')">${escapeHtml(post.username)}</span>
+                    <span class="post-handle">@${escapeHtml(post.username)}</span>
+                    <span class="post-time">· ${formatTime(post.timestamp)}</span>
+                    ${isOwnPost ? `<span class="post-menu" onclick="deletePost('${post.id}')" title="Excluir"><i class="fas fa-trash"></i></span>` : ''}
+                </div>
+                <div class="post-content">${escapeHtml(post.content)}</div>
+                ${post.imageUrl ? `<img src="${post.imageUrl}" class="post-image" onclick="openImageModal('${escapeHtml(post.imageUrl)}')" alt="imagem do post">` : ''}
+                <div class="post-actions">
+                    <div class="post-action ${isLiked ? 'liked' : ''}" onclick="likePost('${post.id}')">
+                        <i class="fas fa-heart"></i>
+                        <span class="like-count">${post.likes?.length || 0}</span>
+                    </div>
+                    <div class="post-action" onclick="toggleComments('${post.id}')">
+                        <i class="fas fa-comment"></i>
+                        <span>${post.comments?.length || 0}</span>
+                    </div>
+                    <div class="post-action retweet-action ${isRetweet ? 'retweeted' : ''}" onclick="retweet('${post.id}')">
+                        <i class="fas fa-retweet"></i>
+                        <span class="retweet-count">${post.retweets?.length || 0}</span>
+                    </div>
+                    <div class="post-action ${isSaved ? 'saved' : ''}" onclick="savePost('${post.id}')">
+                        <i class="fas fa-bookmark"></i>
+                        <span>${isSaved ? 'Salvo' : 'Salvar'}</span>
+                    </div>
+                </div>
+                <div class="comments-section" id="comments-${post.id}" style="display:none;">
+                    <div id="comments-list-${post.id}">
+                        ${(post.comments || []).map(c => `
+                            <div class="comment">
+                                <img src="${escapeHtml(c.avatar || '')}" class="comment-avatar" onclick="viewUserProfile('${c.userId}')" alt="">
+                                <div class="comment-content">
+                                    <div class="comment-user">
+                                        <span class="comment-username" onclick="viewUserProfile('${c.userId}')">${escapeHtml(c.username)}</span>
+                                        <span class="comment-handle">@${escapeHtml(c.username)}</span>
+                                    </div>
+                                    <div class="comment-text">${escapeHtml(c.content)}</div>
+                                </div>
+                            </div>`).join('') || '<p style="color:var(--text-muted);font-size:0.82rem;padding:8px 0;">Nenhum comentário ainda</p>'}
+                    </div>
+                    <div class="comment-form">
+                        <input type="text" id="comment-input-${post.id}" class="comment-input" placeholder="Adicione um comentário...">
+                        <button class="btn-secondary-sm" onclick="addComment('${post.id}')">Responder</button>
+                    </div>
+                </div>
             </div>
         </div>
-    `).join('');
+    </div>`;
 }
 
-async function createPost() {
-    const content = document.getElementById('post-input').value;
+async function likePost(postId) {
+    try {
+        const res  = await fetch(`${API_URL}/posts/like`, {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({ postId, userId: currentUser.id })
+        });
+        if (res.ok) {
+            const data = await res.json();
+            updatePostLikes(postId, data.likes);
+        }
+    } catch { /* silent */ }
+}
+
+function updatePostLikes(postId, likes) {
+    const el = document.querySelector(`.post[data-post-id="${postId}"]`);
+    if (!el) return;
+    const action    = el.querySelector('.post-action:first-child');
+    const countSpan = action?.querySelector('.like-count');
+    if (countSpan) countSpan.textContent = likes.length;
+    if (likes.includes(currentUser.id)) action?.classList.add('liked');
+    else action?.classList.remove('liked');
+}
+
+async function retweet(postId) {
+    try {
+        const res  = await fetch(`${API_URL}/posts/retweet`, {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({ postId, userId: currentUser.id })
+        });
+        if (res.ok) {
+            const data    = await res.json();
+            const isNow   = data.retweets.includes(currentUser.id);
+            showToast(isNow ? 'Retweetado! 🔁' : 'Retweet removido', isNow ? 'success' : 'info');
+            loadPosts();
+        }
+    } catch { showToast('Erro ao retweet', 'error'); }
+}
+
+async function savePost(postId) {
+    if (savedPosts.includes(postId)) {
+        savedPosts = savedPosts.filter(id => id !== postId);
+        showToast('Removido dos salvos', 'info');
+    } else {
+        savedPosts.push(postId);
+        showToast('Post salvo! 🔖', 'success');
+    }
+    localStorage.setItem('savedPosts', JSON.stringify(savedPosts));
+    loadPosts();
+    if (currentView === 'bookmarks') loadBookmarks();
+}
+
+async function deletePost(postId) {
+    if (!confirm('Excluir este post?')) return;
+    try {
+        const res = await fetch(`${API_URL}/posts/${postId}`, {
+            method: 'DELETE',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({ userId: currentUser.id })
+        });
+        if (res.ok) { showToast('Post excluído', 'success'); loadPosts(); }
+        else showToast('Sem permissão para excluir', 'error');
+    } catch { showToast('Erro ao excluir', 'error'); }
+}
+
+async function addComment(postId) {
+    const input   = document.getElementById(`comment-input-${postId}`);
+    const content = input?.value.trim();
     if (!content) return;
-
-    await fetch('/api/posts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            content,
-            userId: currentUser.id,
-            username: currentUser.username
-        })
-    });
-
-    document.getElementById('post-input').value = '';
-    loadPosts();
+    try {
+        const res = await fetch(`${API_URL}/posts/comment`, {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({
+                postId,
+                userId:   currentUser.id,
+                username: currentUser.username,
+                avatar:   currentUser.avatar,
+                content
+            })
+        });
+        if (res.ok) { input.value = ''; showToast('Comentário adicionado!', 'success'); loadPosts(); }
+    } catch { /* silent */ }
 }
 
-async function deletePost(id) {
-    await fetch(`/api/posts/${id}`, { method: 'DELETE' });
-    loadPosts();
+function toggleComments(postId) {
+    const sec = document.getElementById(`comments-${postId}`);
+    if (sec) sec.style.display = sec.style.display === 'none' ? 'block' : 'none';
 }
 
-async function likePost(id) {
-    await fetch(`/api/like/${id}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: currentUser.id })
+function openImageModal(url) {
+    const modal = document.getElementById('image-modal');
+    const img   = document.getElementById('modal-image');
+    if (modal && img) { img.src = url; modal.classList.add('active'); }
+}
+
+// ════════════════════════════════════════
+//  BOOKMARKS
+// ════════════════════════════════════════
+async function loadBookmarks() {
+    const list = document.getElementById('bookmarks-list');
+    if (!list) return;
+
+    if (savedPosts.length === 0) {
+        list.innerHTML = `<div class="empty-state"><i class="fas fa-bookmark"></i><p>Nenhum post salvo</p><span>Salve posts para vê-los aqui</span></div>`;
+        return;
+    }
+
+    try {
+        const res   = await fetch(`${API_URL}/posts`);
+        const posts = await res.json();
+        const saved = posts.filter(p => savedPosts.includes(p.id));
+        list.innerHTML = saved.length
+            ? saved.map(createPostElement).join('')
+            : `<div class="empty-state"><i class="fas fa-bookmark"></i><p>Posts salvos não encontrados</p></div>`;
+    } catch { list.innerHTML = `<div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>Erro ao carregar salvos</p></div>`; }
+}
+
+// ════════════════════════════════════════
+//  FOLLOW
+// ════════════════════════════════════════
+async function toggleFollow(userId) {
+    const isFollowing       = currentUser.following?.includes(userId);
+    const endpoint          = isFollowing ? '/users/unfollow' : '/users/follow';
+    const prevState         = [...(currentUser.following || [])];
+
+    // Optimistic update
+    if (isFollowing) currentUser.following = currentUser.following.filter(id => id !== userId);
+    else currentUser.following = [...(currentUser.following || []), userId];
+    localStorage.setItem('user', JSON.stringify(currentUser));
+
+    // Update all buttons for this user
+    updateFollowButtons(userId, !isFollowing);
+
+    try {
+        const res  = await fetch(`${API_URL}${endpoint}`, {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({ followerId: currentUser.id, followingId: userId })
+        });
+        if (res.ok) {
+            const data = await res.json();
+            showToast(data.message, 'success');
+            updateUserStats();
+            if (currentFeedTab === 'following') loadPosts();
+        } else {
+            // Rollback
+            currentUser.following = prevState;
+            localStorage.setItem('user', JSON.stringify(currentUser));
+            updateFollowButtons(userId, isFollowing);
+            showToast('Erro ao atualizar', 'error');
+        }
+    } catch {
+        currentUser.following = prevState;
+        localStorage.setItem('user', JSON.stringify(currentUser));
+        updateFollowButtons(userId, isFollowing);
+        showToast('Erro de conexão', 'error');
+    }
+}
+
+function updateFollowButtons(userId, nowFollowing) {
+    document.querySelectorAll(`[onclick*="toggleFollow('${userId}')"]`).forEach(btn => {
+        if (nowFollowing) {
+            btn.textContent = 'Seguindo';
+            btn.classList.add('following');
+        } else {
+            btn.textContent = 'Seguir';
+            btn.classList.remove('following');
+        }
     });
-    loadPosts();
+}
+
+// ════════════════════════════════════════
+//  PROFILE
+// ════════════════════════════════════════
+async function loadProfileData(userId) {
+    try {
+        const [userRes, postsRes] = await Promise.all([
+            fetch(`${API_URL}/users/${userId}`),
+            fetch(`${API_URL}/posts/user/${userId}`)
+        ]);
+        const user      = await userRes.json();
+        const userPosts = await postsRes.json();
+
+        const isOwn       = userId === currentUser.id;
+        const isFollowing = currentUser.following?.includes(userId);
+        const joinDate    = formatDate(user.joinDate);
+
+        const container = document.getElementById('profile-container');
+        if (!container) return;
+
+        container.innerHTML = `
+        <div class="profile-container">
+            <div class="profile-cover">
+                ${user.coverImage ? `<img src="${escapeHtml(user.coverImage)}" class="profile-cover-img" alt="capa">` : ''}
+            </div>
+            <div class="profile-avatar-wrapper">
+                <img src="${escapeHtml(user.avatar || '')}" class="profile-avatar-large" alt="avatar">
+            </div>
+            <div class="profile-info">
+                <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;">
+                    <div>
+                        <div class="profile-name">${escapeHtml(user.username)}</div>
+                        <div class="profile-handle">@${escapeHtml(user.username)}</div>
+                    </div>
+                    ${!isOwn ? `
+                        <button class="follow-button ${isFollowing ? 'following' : ''}" onclick="toggleFollow('${userId}')">
+                            ${isFollowing ? '<i class="fas fa-check"></i> Seguindo' : '<i class="fas fa-plus"></i> Seguir'}
+                        </button>` : ''}
+                </div>
+                <div class="profile-bio">${escapeHtml(user.bio || 'Sem bio')}</div>
+                <div class="profile-details">
+                    ${user.location ? `<span><i class="fas fa-map-marker-alt"></i> ${escapeHtml(user.location)}</span>` : ''}
+                    ${user.website  ? `<span><i class="fas fa-link"></i> <a href="${escapeHtml(user.website)}" target="_blank" rel="noopener">${escapeHtml(user.website)}</a></span>` : ''}
+                    <span><i class="fas fa-calendar-alt"></i> Entrou em ${joinDate}</span>
+                </div>
+                <div class="profile-stats">
+                    <div class="stat-item">
+                        <span class="stat-number">${user.followers?.length || 0}</span>
+                        <span class="stat-label">Seguidores</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number">${user.following?.length || 0}</span>
+                        <span class="stat-label">Seguindo</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number">${userPosts.length}</span>
+                        <span class="stat-label">Posts</span>
+                    </div>
+                </div>
+            </div>
+            ${isOwn ? `
+            <div class="edit-profile-section">
+                <h3><i class="fas fa-pen"></i> Editar Perfil</h3>
+                <input type="text"  id="edit-avatar-url"  placeholder="URL da foto de perfil"  value="${escapeHtml(user.avatar || '')}">
+                <input type="text"  id="edit-cover-url"   placeholder="URL da imagem de capa"   value="${escapeHtml(user.coverImage || '')}">
+                <textarea          id="edit-bio"          placeholder="Biografia" rows="3">${escapeHtml(user.bio || '')}</textarea>
+                <input type="text"  id="edit-location"    placeholder="Localização"              value="${escapeHtml(user.location || '')}">
+                <input type="text"  id="edit-website"     placeholder="Website"                  value="${escapeHtml(user.website || '')}">
+                <button class="btn-primary-sm" onclick="updateProfile()"><i class="fas fa-save"></i> Salvar Alterações</button>
+            </div>` : ''}
+            <div style="padding:20px 24px;">
+                <h3 style="font-size:1rem;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:8px;">
+                    <i class="fas fa-newspaper" style="color:var(--primary);"></i> Posts
+                </h3>
+                <div id="user-posts-list">
+                    ${userPosts.length
+                        ? userPosts.map(createPostElement).join('')
+                        : `<div class="empty-state" style="padding:32px 0;"><i class="fas fa-ghost"></i><p>Nenhum post ainda</p></div>`}
+                </div>
+            </div>
+        </div>`;
+
+        document.title = `${user.username} | Nexus Social`;
+    } catch (err) {
+        console.error(err);
+        showToast('Erro ao carregar perfil', 'error');
+    }
+}
+
+async function updateProfile() {
+    const avatar     = document.getElementById('edit-avatar-url')?.value;
+    const coverImage = document.getElementById('edit-cover-url')?.value;
+    const bio        = document.getElementById('edit-bio')?.value;
+    const location   = document.getElementById('edit-location')?.value;
+    const website    = document.getElementById('edit-website')?.value;
+
+    try {
+        const res = await fetch(`${API_URL}/users/${currentUser.id}`, {
+            method: 'PATCH',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({ avatar, coverImage, bio, location, website })
+        });
+        if (res.ok) {
+            currentUser = await res.json();
+            localStorage.setItem('user', JSON.stringify(currentUser));
+            showToast('Perfil atualizado! ✅', 'success');
+            updateUI();
+            loadProfileData(currentUser.id);
+        }
+    } catch { showToast('Erro ao atualizar perfil', 'error'); }
+}
+
+// ════════════════════════════════════════
+//  SEARCH & EXPLORE
+// ════════════════════════════════════════
+async function searchUsers() {
+    const term    = document.getElementById('main-search')?.value.toLowerCase().trim();
+    const results = document.getElementById('search-results');
+    if (!results) return;
+    if (!term) { results.innerHTML = ''; return; }
+
+    try {
+        const res   = await fetch(`${API_URL}/users`);
+        const users = await res.json();
+        const found = users.filter(u => u.username.toLowerCase().includes(term) && u.id !== currentUser.id);
+
+        results.innerHTML = found.length
+            ? found.map(u => `
+                <div class="user-card" onclick="viewUserProfile('${u.id}')">
+                    <img src="${escapeHtml(u.avatar || '')}" class="user-avatar" alt="">
+                    <div class="user-info">
+                        <div class="user-name">${escapeHtml(u.username)}</div>
+                        <div class="user-handle">@${escapeHtml(u.username)}</div>
+                        <div class="user-bio">${escapeHtml(u.bio || 'Sem bio')}</div>
+                    </div>
+                    <button class="btn-secondary-sm ${currentUser.following?.includes(u.id) ? 'following' : ''}"
+                        onclick="event.stopPropagation();toggleFollow('${u.id}')">
+                        ${currentUser.following?.includes(u.id) ? 'Seguindo' : 'Seguir'}
+                    </button>
+                </div>`).join('')
+            : `<div class="empty-state" style="padding:32px 0;"><i class="fas fa-search"></i><p>Nenhum usuário encontrado</p></div>`;
+    } catch { /* silent */ }
+}
+
+async function loadExplore() {
+    await loadTrendingTopics();
+    await loadSuggestions();
+}
+
+async function loadTrendingTopics() {
+    const container = document.getElementById('trending-topics');
+    if (!container) return;
+
+    const topics = [
+        { topic:'#NexusSocial', posts:'15.2k', icon:'fa-chart-line', color:'var(--success)' },
+        { topic:'#Inovação',    posts:'8.7k',  icon:'fa-arrow-up',   color:'var(--danger)'  },
+        { topic:'#Tecnologia',  posts:'12.3k', icon:'fa-microchip',  color:'var(--primary)' },
+        { topic:'#Design',      posts:'4.2k',  icon:'fa-paint-brush',color:'var(--accent)'  },
+        { topic:'#JavaScript',  posts:'9.1k',  icon:'fa-code',       color:'var(--warning)' },
+        { topic:'#UX',          posts:'3.8k',  icon:'fa-star',       color:'var(--accent-cyan)' },
+    ];
+
+    container.innerHTML = topics.map(t => `
+        <div class="trend-item">
+            <div>
+                <strong>${t.topic}</strong>
+                <small>${t.posts} posts</small>
+            </div>
+            <i class="fas ${t.icon}" style="color:${t.color};"></i>
+        </div>`).join('');
+}
+
+async function loadSuggestions() {
+    const list = document.getElementById('suggestions-list');
+    if (!list) return;
+
+    try {
+        const res  = await fetch(`${API_URL}/users`);
+        const users= await res.json();
+        const sugg = users.filter(u => u.id !== currentUser.id && !currentUser.following?.includes(u.id)).slice(0, 4);
+
+        list.innerHTML = sugg.length
+            ? sugg.map(u => `
+                <div class="user-card" onclick="viewUserProfile('${u.id}')">
+                    <img src="${escapeHtml(u.avatar || '')}" class="user-avatar" style="width:40px;height:40px;" alt="">
+                    <div class="user-info">
+                        <div class="user-name">${escapeHtml(u.username)}</div>
+                        <div class="user-handle">@${escapeHtml(u.username)}</div>
+                    </div>
+                    <button class="btn-secondary-sm" style="padding:5px 12px;font-size:0.78rem;"
+                        onclick="event.stopPropagation();toggleFollow('${u.id}')">Seguir</button>
+                </div>`).join('')
+            : `<p style="color:var(--text-muted);font-size:0.85rem;text-align:center;padding:12px;">Nenhuma sugestão</p>`;
+    } catch { /* silent */ }
+}
+
+// ════════════════════════════════════════
+//  STATS
+// ════════════════════════════════════════
+async function updateUserStats() {
+    try {
+        const [uRes, pRes] = await Promise.all([
+            fetch(`${API_URL}/users/${currentUser.id}`),
+            fetch(`${API_URL}/posts/user/${currentUser.id}`)
+        ]);
+        const user  = await uRes.json();
+        const posts = await pRes.json();
+
+        const fc = document.getElementById('followers-count');
+        const fg = document.getElementById('following-count');
+        const pc = document.getElementById('posts-count');
+        if (fc) fc.textContent = user.followers?.length || 0;
+        if (fg) fg.textContent = user.following?.length || 0;
+        if (pc) pc.textContent = posts.length;
+    } catch { /* silent */ }
+}
+
+function updatePostsCount() {
+    const count = document.querySelectorAll('#timeline .post').length;
+    const el    = document.getElementById('posts-count');
+    if (el) el.textContent = count;
+}
+
+// ════════════════════════════════════════
+//  MESSAGES
+// ════════════════════════════════════════
+async function loadConversations() {
+    try {
+        const res   = await fetch(`${API_URL}/users`);
+        const users = await res.json();
+        const others= users.filter(u => u.id !== currentUser.id);
+        const list  = document.getElementById('conversations-list');
+        if (!list) return;
+
+        list.innerHTML = others.map(u => `
+            <div class="conversation-item ${currentConversation === u.id ? 'active' : ''}"
+                 onclick="openConversation('${u.id}')">
+                <img src="${escapeHtml(u.avatar || '')}" class="conversation-avatar" alt="">
+                <div class="conversation-info">
+                    <h4>${escapeHtml(u.username)}</h4>
+                    <div class="conversation-last-message">Clique para conversar</div>
+                </div>
+            </div>`).join('') || `<div class="empty-state" style="padding:40px 0;"><i class="fas fa-users"></i><p>Nenhum usuário</p></div>`;
+    } catch { /* silent */ }
+}
+
+async function openConversation(userId) {
+    currentConversation = userId;
+
+    try {
+        const uRes  = await fetch(`${API_URL}/users/${userId}`);
+        const other = await uRes.json();
+
+        const area  = document.getElementById('messages-area');
+        if (!area) return;
+
+        area.innerHTML = `
+            <div class="messages-header">
+                <img src="${escapeHtml(other.avatar || '')}" alt="">
+                <div>
+                    <h4>${escapeHtml(other.username)}</h4>
+                    <span style="font-size:0.78rem;color:var(--text-secondary);">@${escapeHtml(other.username)}</span>
+                </div>
+            </div>
+            <div class="messages-list" id="messages-list"></div>
+            <div class="message-input-area">
+                <button id="chat-emoji-btn" class="action-btn" title="Emoji">
+                    <i class="fas fa-face-smile"></i>
+                </button>
+                <input type="text" id="message-input" class="message-input" placeholder="Digite uma mensagem...">
+                <button class="btn-primary-sm" id="send-message-btn">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>`;
+
+        document.getElementById('send-message-btn')?.addEventListener('click', sendMessage);
+        document.getElementById('message-input')?.addEventListener('keypress', e => { if (e.key === 'Enter') sendMessage(); });
+        setupChatEmojiPicker();
+
+        const mRes  = await fetch(`${API_URL}/messages/${currentUser.id}/${userId}`);
+        const msgs  = await mRes.json();
+
+        const msgList = document.getElementById('messages-list');
+        if (msgList) {
+            msgList.innerHTML = msgs.map(renderMessage).join('') || `<div class="empty-state" style="padding:40px 0;"><i class="fas fa-comment-dots"></i><p>Nenhuma mensagem</p><span>Diga olá! 👋</span></div>`;
+            msgList.scrollTop = msgList.scrollHeight;
+        }
+
+        // Highlight active conversation
+        document.querySelectorAll('.conversation-item').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll(`.conversation-item`).forEach(el => {
+            if (el.getAttribute('onclick')?.includes(userId)) el.classList.add('active');
+        });
+    } catch (err) { console.error(err); }
+}
+
+function renderMessage(msg) {
+    const isOwn   = msg.from === currentUser.id;
+    const isLiked = msg.likedBy?.includes(currentUser.id);
+    return `
+    <div class="message ${isOwn ? 'sent' : 'received'}" data-message-id="${msg.id}">
+        <div class="message-content-wrapper">
+            <div class="message-content">${escapeHtml(msg.content)}</div>
+            <div class="message-time">${new Date(msg.timestamp).toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'})}</div>
+        </div>
+        <div class="message-actions">
+            <button class="message-action-btn message-like-btn ${isLiked ? 'liked' : ''}" onclick="likeMessage('${msg.id}')">
+                <i class="fas fa-heart"></i>
+            </button>
+            ${isOwn ? `<button class="message-action-btn message-delete-btn" onclick="deleteMessage('${msg.id}')"><i class="fas fa-trash"></i></button>` : ''}
+        </div>
+    </div>`;
+}
+
+async function sendMessage() {
+    const input   = document.getElementById('message-input');
+    const content = input?.value.trim();
+    if (!content || !currentConversation) return;
+    try {
+        const res = await fetch(`${API_URL}/messages`, {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({ from: currentUser.id, to: currentConversation, content })
+        });
+        if (res.ok) { input.value = ''; openConversation(currentConversation); }
+    } catch { /* silent */ }
+}
+
+async function deleteMessage(msgId) {
+    if (!confirm('Excluir mensagem?')) return;
+    try {
+        const res = await fetch(`${API_URL}/messages/${msgId}`, {
+            method: 'DELETE',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({ userId: currentUser.id })
+        });
+        if (res.ok) { showToast('Mensagem excluída', 'success'); openConversation(currentConversation); }
+    } catch { /* silent */ }
+}
+
+async function likeMessage(msgId) {
+    try {
+        const res  = await fetch(`${API_URL}/messages/${msgId}/like`, {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({ userId: currentUser.id })
+        });
+        if (res.ok) openConversation(currentConversation);
+    } catch { /* silent */ }
+}
+
+// ════════════════════════════════════════
+//  NOTIFICATIONS
+// ════════════════════════════════════════
+async function loadNotifications() {
+    try {
+        const res   = await fetch(`${API_URL}/notifications/${currentUser.id}`);
+        const notifs= await res.json();
+        const list  = document.getElementById('notifications-list');
+        if (!list) return;
+
+        unreadNotificationsCount = notifs.filter(n => !n.read).length;
+        updateNotificationBadge();
+
+        if (!notifs.length) {
+            list.innerHTML = `<div class="empty-state"><i class="fas fa-bell-slash"></i><p>Nenhuma notificação</p></div>`;
+            return;
+        }
+
+        list.innerHTML = notifs.map(n => `
+            <div class="post ${!n.read ? 'unread-notification' : ''}" data-notif-id="${n.id}"
+                 onclick="markNotificationRead('${n.id}')${n.fromUser?.id ? `;viewUserProfile('${n.fromUser.id}')` : ''}"
+                 style="cursor:pointer;position:relative;">
+                <div class="post-header">
+                    <img src="${escapeHtml(n.fromUser?.avatar || '')}" class="post-avatar" alt="">
+                    <div class="post-info">
+                        <div class="post-username">${escapeHtml(n.fromUser?.username || 'Alguém')}</div>
+                        <div class="post-content" style="font-size:0.88rem;margin:4px 0;">${escapeHtml(n.content)}</div>
+                        <div class="post-time">${formatTime(n.timestamp)}</div>
+                    </div>
+                </div>
+                ${!n.read ? '<span class="unread-dot"></span>' : ''}
+            </div>`).join('');
+    } catch { /* silent */ }
+}
+
+async function markNotificationRead(id) {
+    try {
+        const res = await fetch(`${API_URL}/notifications/${id}/read`, {
+            method: 'POST', headers: {'Content-Type':'application/json'}
+        });
+        if (res.ok) {
+            if (unreadNotificationsCount > 0) unreadNotificationsCount--;
+            updateNotificationBadge();
+            const el = document.querySelector(`.post[data-notif-id="${id}"]`);
+            if (el) { el.classList.remove('unread-notification'); el.querySelector('.unread-dot')?.remove(); }
+        }
+    } catch { /* silent */ }
+}
+
+function updateNotificationBadge() {
+    const badge = document.getElementById('notification-badge');
+    if (!badge) return;
+    if (unreadNotificationsCount > 0) {
+        badge.textContent = unreadNotificationsCount;
+        badge.style.display = 'inline-block';
+    } else {
+        badge.style.display = 'none';
+    }
+}
+
+// ════════════════════════════════════════
+//  SETTINGS
+// ════════════════════════════════════════
+function openSettingsModal() {
+    const modal = document.createElement('div');
+    modal.className = 'modal active';
+    modal.innerHTML = `
+        <div class="modal-content" style="max-width:480px;background:var(--bg-card);padding:36px;border-radius:var(--radius-xl);border:1px solid var(--border);">
+            <span class="close-modal" id="close-settings">&times;</span>
+            <h2 style="margin-bottom:24px;font-size:1.3rem;font-weight:800;letter-spacing:-0.03em;">
+                <i class="fas fa-cog" style="color:var(--primary);margin-right:10px;"></i>Configurações
+            </h2>
+            <div class="settings-section">
+                <h3>Aparência</h3>
+                <button class="btn-secondary-sm" onclick="document.body.classList.toggle('high-contrast');showToast('Alto contraste alternado','info')">Alto Contraste</button>
+                <button class="btn-secondary-sm" onclick="document.body.classList.toggle('large-text');showToast('Texto grande alternado','info')">Texto Grande</button>
+                <button class="btn-secondary-sm" onclick="document.body.classList.remove('high-contrast','large-text');showToast('Resetado','info')">Resetar</button>
+            </div>
+            <div class="settings-section">
+                <h3>Sidebar</h3>
+                <button class="btn-secondary-sm" onclick="toggleSidebar();showToast('Sidebar alternada','info')">
+                    <i class="fas fa-sidebar"></i> Expandir/Recolher
+                </button>
+            </div>
+            <div class="settings-section">
+                <h3>Sobre</h3>
+                <p style="font-size:0.88rem;color:var(--text-secondary);line-height:1.6;">
+                    <strong style="color:var(--text);">Nexus Social v2.0</strong><br>
+                    Conecte-se com o mundo de forma inovadora.<br>
+                    Projeto acadêmico — design premium.
+                </p>
+            </div>
+        </div>`;
+    document.body.appendChild(modal);
+    modal.querySelector('#close-settings').addEventListener('click', () => modal.remove());
+    modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+}
+
+// ════════════════════════════════════════
+//  WEBSOCKET
+// ════════════════════════════════════════
+function connectWebSocket() {
+    try {
+        ws = new WebSocket('ws://localhost:3000');
+        ws.onopen  = () => console.log('✅ WebSocket conectado');
+        ws.onmessage = e => { try { handleRealtime(JSON.parse(e.data)); } catch { /* ignore */ } };
+        ws.onerror  = () => { /* silent */ };
+        ws.onclose  = () => setTimeout(connectWebSocket, 4000);
+    } catch { /* silent */ }
+}
+
+function handleRealtime(data) {
+    switch (data.type) {
+        case 'new_post':
+            if (currentView === 'home') loadPosts();
+            break;
+        case 'like_update':
+            updatePostLikes(data.data.postId, data.data.likes);
+            break;
+        case 'new_comment':
+            if (currentView === 'home') loadPosts();
+            break;
+        case 'new_message':
+            if (currentView === 'messages' && currentConversation &&
+                (data.data.from === currentConversation || data.data.to === currentConversation)) {
+                openConversation(currentConversation);
+            }
+            if (data.data.to === currentUser.id) showToast('💬 Nova mensagem!', 'info');
+            break;
+        case 'follow_update':
+            updateUserStats();
+            if (currentView === 'profile') loadProfileData(viewingUserId || currentUser.id);
+            break;
+        case 'user_updated':
+            if (data.data.id === currentUser.id) {
+                currentUser = data.data;
+                localStorage.setItem('user', JSON.stringify(currentUser));
+                updateUI();
+            }
+            break;
+        case 'new_notification':
+            if (currentView === 'notifications') loadNotifications();
+            unreadNotificationsCount++;
+            updateNotificationBadge();
+            showToast('🔔 Nova notificação!', 'info');
+            break;
+        case 'retweet_update':
+            loadPosts();
+            break;
+    }
+}
+
+// ════════════════════════════════════════
+//  UTILS
+// ════════════════════════════════════════
+function debounce(fn, ms) {
+    let t;
+    return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
+}
+
+function escapeHtml(str) {
+    if (!str) return '';
+    const d = document.createElement('div');
+    d.textContent = str;
+    return d.innerHTML;
+}
+
+function formatTime(ts) {
+    if (!ts) return '';
+    const diff = (Date.now() - ts) / 1000;
+    if (diff < 60)    return 'agora';
+    if (diff < 3600)  return `${Math.floor(diff/60)}m`;
+    if (diff < 86400) return `${Math.floor(diff/3600)}h`;
+    if (diff < 604800)return `${Math.floor(diff/86400)}d`;
+    return new Date(ts).toLocaleDateString('pt-BR');
+}
+
+function formatDate(ts) {
+    if (!ts) return 'Data desconhecida';
+    const d = new Date(ts);
+    if (isNaN(d)) return 'Data inválida';
+    return d.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+}
+
+function showToast(msg, type = 'info') {
+    const c     = document.getElementById('toast-container');
+    if (!c) return;
+    const icons = { success:'fa-circle-check', error:'fa-circle-exclamation', warning:'fa-triangle-exclamation', info:'fa-circle-info' };
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.innerHTML = `<div style="display:flex;align-items:center;gap:10px;"><i class="fas ${icons[type] || icons.info}"></i><span>${msg}</span></div>`;
+    c.appendChild(toast);
+    setTimeout(() => { toast.style.transition = 'opacity 0.3s'; toast.style.opacity = '0'; setTimeout(() => toast.remove(), 300); }, 3000);
 }
