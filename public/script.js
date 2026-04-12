@@ -1,9 +1,9 @@
-// ========================================
+
 //  NEXUS SOCIAL — script.js (v2 — fixed)
-// ========================================
+
 console.log('🚀 Nexus Social v2 — Carregando...');
 
-const API_URL = 'http://localhost:3000';
+const API_URL = 'https://meu-twitter-projeto-x.onrender.com';
 
 let currentUser        = null;
 let ws                 = null;
@@ -1140,11 +1140,19 @@ function openSettingsModal() {
 // ════════════════════════════════════════
 function connectWebSocket() {
     try {
-        ws = new WebSocket('ws://localhost:3000');
+     const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+    const wsUrl = `${protocol}://${window.location.host}`;
+        ws = new WebSocket('wss:https://meu-twitter-projeto-x.onrender.com');
         ws.onopen  = () => console.log('✅ WebSocket conectado');
-        ws.onmessage = e => { try { handleRealtime(JSON.parse(e.data)); } catch { /* ignore */ } };
+        ws.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        handleWebSocketMessage(data); // Sua função que trata as notificações/posts
+    };
         ws.onerror  = () => { /* silent */ };
-        ws.onclose  = () => setTimeout(connectWebSocket, 4000);
+        ws.onclose = () => {
+        console.log('🔌 WebSocket desconectado. Tentando reconectar...');
+        setTimeout(connectWebSocket, 3000); // Tenta reconectar se cair
+    };
     } catch { /* silent */ }
 }
 

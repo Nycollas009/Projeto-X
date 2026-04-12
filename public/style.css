@@ -281,9 +281,7 @@ body.large-text { font-size: 118%; }
 .btn-primary:hover { transform: translateY(-2px); box-shadow: var(--shadow-accent); }
 .btn-primary:active { transform: translateY(0); }
 
-/* ============================================================
-   APP CONTAINER
-   ============================================================ */
+/* == APP CONTAINER == */
 #app-container {
     display: none;
     min-height: 100vh;
@@ -389,9 +387,9 @@ body.large-text { font-size: 118%; }
 }
 
 .sidebar-nav.expanded .nav-item {
-    width: 100%; /* Volta a ocupar toda a largura disponível */
-    justify-content: flex-start; /* Alinha ícone e texto à esquerda */
-    padding: 13px 16px; /* Espaçamento interno adequado */
+    width: 100%; 
+    justify-content: flex-start; 
+    padding: 13px 16px; 
     margin: 0;
 }
 
@@ -457,18 +455,7 @@ body.large-text { font-size: 118%; }
 }
 .nav-item.active i { color: var(--primary); }
 
-/* Active indicator dot */
-.nav-item.active::after {
-    content: '';
-    position: absolute;
-    bottom: 6px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 4px;
-    height: 4px;
-    border-radius: 50%;
-    background: var(--primary);
-}
+
 .sidebar-nav.expanded .nav-item.active::after { display: none; }
 
 .notification-badge {

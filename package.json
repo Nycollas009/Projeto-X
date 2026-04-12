@@ -1,4 +1,9 @@
+
 {
+  
+  "start": {
+    "start": "node server.js"
+},
   "dependencies": {
     "bcryptjs": "^3.0.3",
     "body-parser": "^2.2.2",
@@ -6,6 +11,7 @@
     "express": "^5.2.1",
     "ws": "^8.20.0"
   },
+
   "name": "projeto-twitter",
   "version": "1.0.0",
   "description": "",
