@@ -32,7 +32,6 @@ if (!fs.existsSync(DB_FILE)) {
 const readDB = () => JSON.parse(fs.readFileSync(DB_FILE, 'utf-8'));
 const writeDB = (data) => fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2));
 
-const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
 
 let connectedClients = [];
