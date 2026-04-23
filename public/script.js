@@ -1,7 +1,7 @@
 
-//  NEXUS SOCIAL — script.js (v2 — fixed)
+//  Tiwitter SOCIAL — script.js (v2 — fixed)
 
-console.log('🚀 Nexus Social v2 — Carregando...');
+console.log('🚀 Tiwitter Social v2 — Carregando...');
 
 const API_URL = 'https://meu-twitter-projeto-x.onrender.com';
 
@@ -47,6 +47,9 @@ function setupEventListeners() {
     document.getElementById('username')?.addEventListener('keypress', e => { if (e.key === 'Enter') login(); });
     document.getElementById('password')?.addEventListener('keypress', e => { if (e.key === 'Enter') login(); });
 
+    // Show/hide password toggle
+    document.getElementById('toggle-password')?.addEventListener('click', togglePassword);
+
     // Nav
     document.querySelectorAll('.nav-item[data-page]').forEach(item => {
         item.addEventListener('click', () => navigateTo(item.dataset.page));
@@ -84,6 +87,8 @@ function setupEventListeners() {
         });
     });
 }
+
+
 
 // ════════════════════════════════════════
 //  macOS DOCK TOGGLE
@@ -136,7 +141,7 @@ function setupImageUpload() {
             if (!file) return;
             const valid = ['image/png','image/jpeg','image/jpg','image/webp','image/gif'];
             if (!valid.includes(file.type)) { showToast('Formato inválido. Use PNG, JPG, WEBP ou GIF.', 'error'); return; }
-            if (file.size > 5 * 1024 * 1024) { showToast('Imagem muito grande. Máximo 5MB.', 'error'); return; }
+            if (file.size > 5 * 1024 * 1024) { showToast('Imagem muito grande. Máximo 5MB.', 'error'); return; } // 5MB limit
 
             currentImageFile = file;
             const reader = new FileReader();
@@ -166,7 +171,7 @@ function fileToBase64(file) {
 }
 
 // ════════════════════════════════════════
-//  EMOJI PICKER
+//  EMOJI PICKER Arrumar
 // ════════════════════════════════════════
 let currentEmojiTarget = null;
 
@@ -293,7 +298,9 @@ function showApp() {
     loadSuggestions();
     updateUserStats();
     setupEmojiPicker();
+      startPolling(); 
 }
+
 
 function updateUI() {
     ['sidebar-avatar','post-avatar'].forEach(id => {
@@ -473,19 +480,23 @@ function createPostElement(post) {
                 <div class="post-content">${escapeHtml(post.content)}</div>
                 ${post.imageUrl ? `<img src="${post.imageUrl}" class="post-image" onclick="openImageModal('${escapeHtml(post.imageUrl)}')" alt="imagem do post">` : ''}
                 <div class="post-actions">
-                    <div class="post-action ${isLiked ? 'liked' : ''}" onclick="likePost('${post.id}')">
+
+
+                   <div class="post-action like-action ${isLiked ? 'liked' : ''}" onclick="likePost('${post.id}')">
                         <i class="fas fa-heart"></i>
                         <span class="like-count">${post.likes?.length || 0}</span>
                     </div>
-                    <div class="post-action" onclick="toggleComments('${post.id}')">
+
+
+                   <div class="post-action" onclick="toggleComments(&quot;${post.id}&quot;)">
                         <i class="fas fa-comment"></i>
                         <span>${post.comments?.length || 0}</span>
                     </div>
-                    <div class="post-action retweet-action ${isRetweet ? 'retweeted' : ''}" onclick="retweet('${post.id}')">
+                   <div class="post-action retweet-action ${isRetweet ? 'retweeted' : ''}" onclick="retweet(&quot;${post.id}&quot;)">
                         <i class="fas fa-retweet"></i>
                         <span class="retweet-count">${post.retweets?.length || 0}</span>
                     </div>
-                    <div class="post-action ${isSaved ? 'saved' : ''}" onclick="savePost('${post.id}')">
+                   <div class="post-action ${isSaved ? 'saved' : ''}" onclick="savePost(&quot;${post.id}&quot;)">
                         <i class="fas fa-bookmark"></i>
                         <span>${isSaved ? 'Salvo' : 'Salvar'}</span>
                     </div>
@@ -516,7 +527,7 @@ function createPostElement(post) {
 
 async function likePost(postId) {
     try {
-        const res  = await fetch(`${API_URL}/posts/like`, {
+         const res = await fetch(`${API_URL}/posts/like`, { 
             method: 'POST',
             headers: {'Content-Type':'application/json'},
             body: JSON.stringify({ postId, userId: currentUser.id })
@@ -529,18 +540,41 @@ async function likePost(postId) {
 }
 
 function updatePostLikes(postId, likes) {
-    const el = document.querySelector(`.post[data-post-id="${postId}"]`);
-    if (!el) return;
-    const action    = el.querySelector('.post-action:first-child');
-    const countSpan = action?.querySelector('.like-count');
-    if (countSpan) countSpan.textContent = likes.length;
-    if (likes.includes(currentUser.id)) action?.classList.add('liked');
-    else action?.classList.remove('liked');
-}
-
+    console.log('🔄 Updating likes for post:', postId, 'Likes:', likes);
+    
+    // Busca o post pelo ID
+    const postDiv = document.querySelector(`.post[data-post-id="${postId}"]`);
+    if (!postDiv) {
+        console.log('❌ Post not found in DOM:', postId);
+        return;
+    }
+    
+    // Busca o botão de like (primeiro .post-action com ícone de coração)
+    const likeBtn = postDiv.querySelector('.post-action .fa-heart')?.closest('.post-action');
+    if (!likeBtn) {
+        console.log('❌ Like button not found');
+        return;
+    }
+    
+    // Atualiza contador
+    const countSpan = likeBtn.querySelector('.like-count');
+    if (countSpan) {
+        countSpan.textContent = likes.length;
+        console.log('✅ Like count updated to:', likes.length);
+    }
+    
+    // Atualiza estilo visual
+    if (likes.includes(currentUser.id)) {
+        likeBtn.classList.add('liked');
+        console.log('❤️ Like button marked as liked');
+    } else {
+        likeBtn.classList.remove('liked');
+        console.log('💔 Like button marked as not liked');
+    }
+}  
 async function retweet(postId) {
     try {
-        const res  = await fetch(`${API_URL}/posts/retweet`, {
+        const res = await fetch(`${API_URL}/posts/retweet`, { 
             method: 'POST',
             headers: {'Content-Type':'application/json'},
             body: JSON.stringify({ postId, userId: currentUser.id })
@@ -768,7 +802,7 @@ async function loadProfileData(userId) {
             </div>
         </div>`;
 
-        document.title = `${user.username} | Nexus Social`;
+        document.title = `${user.username} | Tiwitter Social`;
     } catch (err) {
         console.error(err);
         showToast('Erro ao carregar perfil', 'error');
@@ -840,7 +874,7 @@ async function loadTrendingTopics() {
     if (!container) return;
 
     const topics = [
-        { topic:'#NexusSocial', posts:'15.2k', icon:'fa-chart-line', color:'var(--success)' },
+        { topic:'#TiwitterSocial', posts:'15.2k', icon:'fa-chart-line', color:'var(--success)' },
         { topic:'#Inovação',    posts:'8.7k',  icon:'fa-arrow-up',   color:'var(--danger)'  },
         { topic:'#Tecnologia',  posts:'12.3k', icon:'fa-microchip',  color:'var(--primary)' },
         { topic:'#Design',      posts:'4.2k',  icon:'fa-paint-brush',color:'var(--accent)'  },
@@ -1038,7 +1072,11 @@ async function likeMessage(msgId) {
 }
 
 // ════════════════════════════════════════
-//  NOTIFICATIONS
+//  NOTIFICATIONS  ARUMMMAR
+
+
+
+
 // ════════════════════════════════════════
 async function loadNotifications() {
     try {
@@ -1124,7 +1162,7 @@ function openSettingsModal() {
             <div class="settings-section">
                 <h3>Sobre</h3>
                 <p style="font-size:0.88rem;color:var(--text-secondary);line-height:1.6;">
-                    <strong style="color:var(--text);">Nexus Social v2.0</strong><br>
+                    <strong style="color:var(--text);">Tiwitter Social v2.0</strong><br>
                     Conecte-se com o mundo de forma inovadora.<br>
                     Projeto acadêmico — design premium.
                 </p>
@@ -1138,6 +1176,8 @@ function openSettingsModal() {
 // ════════════════════════════════════════
 //  WEBSOCKET
 // ════════════════════════════════════════
+
+
 function connectWebSocket() {
     try {
      const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
@@ -1155,7 +1195,80 @@ function connectWebSocket() {
     };
     } catch { /* silent */ }
 }
+// Adicione depois da função connectWebSocket()
+// ════════════════════════════════════════
+//  WEBSOCKET 
+// ════════════════════════════════════════
 
+function handleWebSocketMessage(event) {
+    try {
+        // 🔧 CORREÇÃO: Verifica se event já é o objeto ou se precisa fazer parse
+        let data;
+        
+        if (typeof event === 'string') {
+            data = JSON.parse(event);
+        } else if (event.data && typeof event.data === 'string') {
+            data = JSON.parse(event.data);
+        } else if (event.data && typeof event.data === 'object') {
+            data = event.data;
+        } else if (typeof event === 'object') {
+            data = event;
+        } else {
+            console.error('❌ Cannot parse WebSocket data:', event);
+            return;
+        }
+        
+        console.log('📨 WebSocket message:', data);
+        
+        switch (data.type) {
+            case 'new_post':
+                if (currentView === 'home') loadPosts();
+                break;
+            case 'like_update':
+                if (data.data && data.data.postId) {
+                    updatePostLikes(data.data.postId, data.data.likes);
+                }
+                break;
+            case 'new_comment':
+                if (currentView === 'home') loadPosts();
+                break;
+            case 'new_message':
+                if (currentView === 'messages' && currentConversation &&
+                    (data.data?.from === currentConversation || data.data?.to === currentConversation)) {
+                    openConversation(currentConversation);
+                }
+                if (data.data?.to === currentUser?.id) showToast('💬 Nova mensagem!', 'info');
+                break;
+            case 'follow_update':
+                updateUserStats();
+                if (currentView === 'profile') loadProfileData(viewingUserId || currentUser?.id);
+                break;
+            case 'user_updated':
+                if (data.data?.id === currentUser?.id) {
+                    currentUser = data.data;
+                    localStorage.setItem('user', JSON.stringify(currentUser));
+                    updateUI();
+                }
+                break;
+            case 'new_notification':
+                if (currentView === 'notifications') loadNotifications();
+                unreadNotificationsCount++;
+                updateNotificationBadge();
+                showToast('🔔 Nova notificação!', 'info');
+                break;
+            case 'retweet_update':
+                loadPosts();
+                break;
+            case 'post_deleted':
+                if (currentView === 'home') loadPosts();
+                break;
+            default:
+                console.log('Unknown message type:', data.type);
+        }
+    } catch (error) {
+        console.error('❌ Error handling WebSocket message:', error);
+    }
+}
 function handleRealtime(data) {
     switch (data.type) {
         case 'new_post':
@@ -1239,3 +1352,58 @@ function showToast(msg, type = 'info') {
     c.appendChild(toast);
     setTimeout(() => { toast.style.transition = 'opacity 0.3s'; toast.style.opacity = '0'; setTimeout(() => toast.remove(), 300); }, 3000);
 }
+
+function togglePassword() {
+    const passwordInput = document.getElementById('password');
+    const toggleIcon = document.getElementById('toggle-password');
+
+    if (passwordInput.type === 'password') {
+        passwordInput.type = 'text';
+        toggleIcon.classList.remove('fa-eye');
+        toggleIcon.classList.add('fa-eye-slash');
+    } else {
+        passwordInput.type = 'password';
+        toggleIcon.classList.remove('fa-eye-slash');
+        toggleIcon.classList.add('fa-eye');
+    }
+}
+
+let lastPostsSnapshot = '';
+let pollingInterval   = null;
+
+
+//updates em geral (likes, comentários, retweets) para manter a interface atualizada mesmo sem websocket
+async function pollUpdates() {
+    try {
+        const res   = await fetch(`${API_URL}/posts`);
+        const posts = await res.json();
+
+        // Compara o estado atual com o anterior
+        const snapshot = JSON.stringify(posts.map(p => ({
+            id:       p.id,
+            likes:    p.likes?.length,
+            retweets: p.retweets?.length,
+            comments: p.comments?.length
+        })));
+
+        if (snapshot !== lastPostsSnapshot) {
+            lastPostsSnapshot = snapshot;
+            allPosts = posts;
+            filterAndDisplayPosts(); // usa sua função existente
+        }
+    } catch {
+        // servidor offline — polling tenta de novo no próximo ciclo
+    }
+}
+
+function startPolling(intervalMs = 5000) {
+    if (pollingInterval) return; // evita duplicar
+    pollUpdates(); // roda imediatamente
+    pollingInterval = setInterval(pollUpdates, intervalMs);
+}
+
+function stopPolling() {
+    clearInterval(pollingInterval);
+    pollingInterval = null;
+}
+

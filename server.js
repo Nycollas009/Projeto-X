@@ -51,20 +51,36 @@ function broadcastUpdate(type, data) {
     });
 }
 
-// ========== AUTENTICAÇÃO ==========
-app.post('/login-register', (req, res) => {
+const bcrypt = require('bcrypt');
+const SALT_ROUNDS = 10;
+
+// == AUTENTICAÇÃO ==
+app.post('/login-register', async (req, res) => {
     const { username, password } = req.body;
     const db = readDB();
     let user = db.users.find(u => u.username === username);
 
-    if (!user) {
-        user = { 
-            id: Date.now().toString(), 
-            username, 
-            password, 
+    if (user) {
+       
+        const passwordMatch = await bcrypt.compare(password, user.password);
+        if (!passwordMatch) {
+            return res.status(401).json({ message: "Senha incorreta para este usuário!" });
+        }
+
+        console.log(`🔑 Usuário logado: ${username}`);
+    }
+
+    else {
+       
+        const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
+
+        user = {
+            id: Date.now().toString(),
+            username,
+            password: hashedPassword, // 👈 salva o hash, nunca o texto puro
             avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${username}`,
             coverImage: `https://picsum.photos/1200/300?random=${Date.now()}`,
-            bio: "✨ Bem-vindo ao Nexus Social! Conecte-se com o mundo.",
+            bio: "✨ Bem-vindo ao Tiwitter Social! Conecte-se com o mundo.",
             location: "🌍 Planeta Terra",
             website: "",
             joinDate: new Date().toISOString(),
@@ -76,10 +92,11 @@ app.post('/login-register', (req, res) => {
         writeDB(db);
         console.log(`📝 Novo usuário criado: ${username}`);
     }
-    
+
     const { password: _, ...userWithoutPassword } = user;
     res.json({ user: userWithoutPassword });
 });
+
 
 // ========== USUÁRIOS ==========
 app.get('/users', (req, res) => {
@@ -231,44 +248,140 @@ app.delete('/posts/:postId', (req, res) => {
     }
 });
 
+
 app.post('/posts/like', (req, res) => {
     const { postId, userId } = req.body;
+    
+    console.log('🔍 Like request:', { postId, userId }); // DEBUG
+    
     const db = readDB();
-    const post = db.posts.find(p => p.id === postId);
+    
+    // Encontra o post
+    const post = db.posts.find(p => String(p.id) === String(postId));
+
+    if (!post) {
+        console.error('❌ Post not found:', postId);
+        return res.status(404).json({ error: "Post não encontrado" });
+    }
+
+    // 🔧 GARANTIR que likes existe
+    if (!post.likes) post.likes = [];
+    
+    const likeIndex = post.likes.findIndex(id => String(id) === String(userId));
+    
+    if (likeIndex === -1) {
+        // CURTIR
+        post.likes.push(String(userId));
+        console.log('✅ Like adicionado. Likes agora:', post.likes);
+        
+        // 🔧 CRIA NOTIFICAÇÃO APENAS SE NÃO FOR O PRÓPRIO USUÁRIO
+        if (String(post.userId) !== String(userId)) {
+            try {
+                const liker = db.users.find(u => String(u.id) === String(userId));
+                if (liker) {
+                    if (!db.notifications) db.notifications = [];
+                    
+                    const notification = {
+                        id: Date.now().toString(),
+                        userId: post.userId,
+                        type: 'like',
+                        fromUser: { 
+                            id: liker.id, 
+                            username: liker.username, 
+                            avatar: liker.avatar || '' 
+                        },
+                        content: `${liker.username} curtiu seu post`,
+                        postId: String(postId),
+                        read: false,
+                        timestamp: Date.now()
+                    };
+                    db.notifications.push(notification);
+                    console.log('📢 Notificação de like criada');
+                } else {
+                    console.warn('⚠️ Liker não encontrado no banco:', userId);
+                }
+            } catch (notifError) {
+                console.error('❌ Erro ao criar notificação:', notifError);
+                // Continua mesmo se a notificação falhar
+            }
+        }
+    } else {
+        // DESCURTIR
+        post.likes.splice(likeIndex, 1);
+        console.log('💔 Like removido. Likes agora:', post.likes);
+    }
+    
+    // Salva no banco
+    writeDB(db);
+    
+    // 🔧 BROADCAST SEGURO
+    try {
+        broadcastUpdate('like_update', { postId: String(postId), likes: post.likes });
+    } catch (broadcastError) {
+        console.error('❌ Erro no broadcast:', broadcastError);
+    }
+    
+    res.json({ likes: post.likes });
+});
+
+
+app.post('/posts/retweet', (req, res) => {
+    const { postId, userId } = req.body;
+    const db = readDB();
+    
+    // 🔧 FIX: Garantir strings
+    const postIdStr = String(postId);
+    const userIdStr = String(userId);
+    
+    const post = db.posts.find(p => String(p.id) === postIdStr);
     
     if (post) {
-        const likeIndex = post.likes.indexOf(userId);
-        if (likeIndex === -1) {
-            post.likes.push(userId);
-            // Criar notificação de like
-            const postOwner = db.users.find(u => u.id === post.userId);
-            if (postOwner && postOwner.id !== userId) {
-                const liker = db.users.find(u => u.id === userId);
+        if (!post.retweets) post.retweets = [];
+        
+        const retweetIndex = post.retweets.findIndex(id => String(id) === userIdStr);
+        let isRetweeting = false;
+        
+        if (retweetIndex === -1) {
+            post.retweets.push(userIdStr);
+            isRetweeting = true;
+        } else {
+            post.retweets.splice(retweetIndex, 1);
+            isRetweeting = false;
+        }
+        
+        writeDB(db);
+        
+        if (isRetweeting && post.userId && String(post.userId) !== userIdStr) {
+            const retweeter = db.users.find(u => String(u.id) === userIdStr);
+            if (retweeter) {
+                if (!db.notifications) db.notifications = [];
                 const notification = {
                     id: Date.now().toString(),
                     userId: post.userId,
-                    type: 'like',
+                    type: 'retweet',
                     fromUser: {
-                        id: userId,
-                        username: liker.username,
-                        avatar: liker.avatar
+                        id: retweeter.id,
+                        username: retweeter.username,
+                        avatar: retweeter.avatar
                     },
-                    content: `${liker.username} curtiu seu post: "${post.content.substring(0, 50)}..."`,
-                    postId: postId,
+                    content: `${retweeter.username} retweetou seu post`,
+                    postId: postIdStr,
                     read: false,
                     timestamp: Date.now()
                 };
                 db.notifications.push(notification);
-                writeDB(db);
-                broadcastUpdate('new_notification', notification);
             }
-        } else {
-            post.likes.splice(likeIndex, 1);
         }
+        
         writeDB(db);
         
-        broadcastUpdate('like_update', { postId, likes: post.likes });
-        res.json({ likes: post.likes });
+        try {
+            broadcastUpdate('retweet_update', { postId: postIdStr, retweets: post.retweets });
+        } catch (err) {
+            console.error('Broadcast error:', err);
+        }
+        
+        res.json({ retweets: post.retweets });
     } else {
         res.status(404).json({ error: "Post não encontrado" });
     }
@@ -320,7 +433,7 @@ app.post('/posts/comment', (req, res) => {
     }
 });
 
-// ========== INICIO DA CORREÇÃO - ENDPOINT RETWEET ==========
+// =ENDPOINT RETWEET
 app.post('/posts/retweet', (req, res) => {
     const { postId, userId } = req.body;
     const db = readDB();
@@ -347,7 +460,7 @@ app.post('/posts/retweet', (req, res) => {
         
         writeDB(db);
         
-        // Criar notificação (apenas se não for o próprio usuário)
+        // Criar notificação 
         if (isRetweeting && post.userId !== userId) {
             const retweeter = db.users.find(u => u.id === userId);
             if (retweeter) {
@@ -377,9 +490,9 @@ app.post('/posts/retweet', (req, res) => {
         res.status(404).json({ error: "Post não encontrado" });
     }
 });
-// ========== FIM DA CORREÇÃO - ENDPOINT RETWEET ==========
 
-// ========== INICIO DA CORREÇÃO - ENDPOINT DELETE MESSAGE ==========
+
+// ENDPOINT DELETE MESSAGE 
 app.delete('/messages/:messageId', (req, res) => {
     const { messageId } = req.params;
     const { userId } = req.body;
@@ -403,9 +516,9 @@ app.delete('/messages/:messageId', (req, res) => {
         res.status(404).json({ error: "Mensagem não encontrada" });
     }
 });
-// ========== FIM DA CORREÇÃO - ENDPOINT DELETE MESSAGE ==========
+// == ENDPOINT DELETE MESSAGE 
 
-// ========== INICIO DA CORREÇÃO - ENDPOINT LIKE MESSAGE ==========
+//  ENDPOINT LIKE MESSAGE 
 app.post('/messages/:messageId/like', (req, res) => {
     const { messageId } = req.params;
     const { userId } = req.body;
@@ -435,7 +548,7 @@ app.post('/messages/:messageId/like', (req, res) => {
         res.status(404).json({ error: "Mensagem não encontrada" });
     }
 });
-// ========== FIM DA CORREÇÃO - ENDPOINT LIKE MESSAGE ==========
+// == ENDPOINT LIKE MESSAGE =
 
 // ========== MENSAGENS ==========
 app.get('/messages/:userId/:otherUserId', (req, res) => {
@@ -487,7 +600,7 @@ app.post('/notifications/:notificationId/read', (req, res) => {
 });
 
 server.listen(port, '0.0.0.0', () => {
-    console.log(`\n🚀 Nexus Social rodando em http://localhost:${port}`);
+    console.log(`\n🚀 Tiwitter Social rodando em http://localhost:${port}`);
     console.log(`📡 WebSocket ativo para atualizações em tempo real`);
     console.log(`✨ Layout inovador pronto para apresentação!\n`);
 });
