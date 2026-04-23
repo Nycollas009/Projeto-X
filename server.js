@@ -5,9 +5,9 @@ const http = require('http');
 const WebSocket = require('ws');
 const path = require('path');
 
-const app = express();
-const port = process.env.PORT || 3000;
-
+const app    = express();
+const server = http.createServer(app); 
+const port   = process.env.PORT || 3000;
 server.listen(port, '0.0.0.0', () => {
     console.log(`Servidor rodando na porta ${port}`);
 });
