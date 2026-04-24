@@ -1,38 +1,83 @@
-
 {
   
   "start": {
-    "start": "node server.js"
-},
+  
+    
+  "start": "node server.js"
+  
+  },
+  
   "dependencies": {
-    "bcryptjs": "^3.0.3",
-    "body-parser": "^2.2.2",
-    "cors": "^2.8.6",
-    "express": "^5.2.1",
-    "ws": "^8.20.0"
+  
+    
+  "bcrypt": "^6.0.0",
+  
+    
+  "bcryptjs": "^3.0.3",
+  
+    
+  "body-parser": "^2.2.2",
+  
+    
+  "cors": "^2.8.6",
+  
+    
+  "express": "^5.2.1",
+  
+    
+  "ws": "^8.20.0"
+  
   },
-
+  
   "name": "projeto-twitter",
+  
   "version": "1.0.0",
+  
   "description": "",
+  
   "main": "server.js",
+  
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js"
+  
+    
+  "test": "echo \"Error: no test specified\" && exit 1",
+  
+    
+  "start": "node server.js"
+  
   },
+  
   "repository": {
-    "type": "git",
-    "url": "git+https://github.com/Nycollas009/Projeto-X.git"
+  
+    
+  "type": "git",
+  
+    
+  "url": "git+https://github.com/Nycollas009/Projeto-X.git"
+  
   },
+  
   "keywords": [],
+  
   "author": "",
+  
   "license": "ISC",
+  
   "type": "commonjs",
+  
   "bugs": {
-    "url": "https://github.com/Nycollas009/Projeto-X/issues"
+  
+    
+  "url": "https://github.com/Nycollas009/Projeto-X/issues"
+  
   },
+  
   "homepage": "https://github.com/Nycollas009/Projeto-X#readme",
+  
   "devDependencies": {
-    "nodemon": "^3.1.14"
+  
+    
+  "nodemon": "^3.1.14"
+  
   }
 }
