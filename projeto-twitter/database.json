@@ -1,0 +1,45 @@
+{
+  "users": [
+    {
+      "id": "1774480961802",
+      "username": "TESTE1",
+      "password": "$2b$10$r6pca0Z6HSNldTHRbkg3B.ngGiLlt1NUY8MkuTAnTJG5zGR3vG4aO",
+      "displayName": "TESTE1",
+      "avatar": "https://api.dicebear.com/7.x/identicon/svg?seed=TESTE1",
+      "bio": "Tá dificil\n",
+      "following": [],
+      "followers": [],
+      "coverImage": "https://api.dicebear.com/7.x/identicon/svg?seed=TESTE1",
+      "location": "",
+      "website": ""
+    },
+    {
+      "id": "1774481377869",
+      "username": "teste1",
+      "password": "$2b$10$0bnqjobmUlWlMFEQAEDU/.HDS8/YZ3Q4mNvyir3HmAps.OqPSzKzS",
+      "displayName": "teste1",
+      "avatar": "https://cdn-front.freepik.com/favicons/favicon-96x96.png?w=96&amp;v=2",
+      "bio": "biografia",
+      "following": [],
+      "followers": []
+    }
+  ],
+  "posts": [
+ 
+  ],
+  "messages": [],
+  "trends": [
+    {
+      "hashtag": "#ProjetoX",
+      "count": "120k"
+    },
+    {
+      "hashtag": "#Desenvolvimento",
+      "count": "85k"
+    },
+    {
+      "hashtag": "#JavaScript",
+      "count": "50k"
+    }
+  ]
+}
