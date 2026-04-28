@@ -1,7 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
 
 /* ============================================================
-   NEXUS SOCIAL — PREMIUM DARK DESIGN SYSTEM
+   TIWITTER SOCIAL — PREMIUM DARK DESIGN SYSTEM
    ============================================================ */
 
 :root {
@@ -188,11 +188,12 @@ body.large-text { font-size: 118%; }
     to   { opacity:1; transform: translateY(0) scale(1); }
 }
 
+
 .login-logo-wrapper {
-    width: 80px;
-    height: 80px;
+    width: 50%;
+    height: auto;
     border-radius: 50%;
-    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    background: rgb(23, 52, 105); /*parte de dentro da logo de login */
     display: flex;
     align-items: center;
     justify-content: center;
@@ -318,17 +319,29 @@ body.large-text { font-size: 118%; }
     align-items: flex-start;
     padding: 24px 16px;
 }
-
 .nav-logo {
-    display: center;
+    
     align-items: center;
-    justify-content: flex-start;
+    justify-content: center;
     gap: 12px;
     padding: 10px;
     margin-bottom: 12px;
-    width: 100%;
-    overflow: hidden;
+    width: 70%;
     white-space: nowrap;
+}
+
+/* Logo retraída */
+.nav-logo-img {
+    width: auto;
+    height: 40px;
+    transition: all 0.2s;
+}
+
+
+/* Logo expandida */
+.sidebar-nav.expanded .nav-logo-img {
+    width: 55;
+    height: 56px;
 }
 
 .nav-logo i {
