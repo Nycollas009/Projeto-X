@@ -88,7 +88,60 @@ function setupEventListeners() {
     });
 }
 
+// ════════════════════════════════════════
+//  AVATAR PADRÃO COM INICIAIS (UI Avatars)
+// ════════════════════════════════════════
 
+// Função para gerar URL do avatar com as iniciais do usuário
+function gerarAvatarComIniciais(nome) {
+    if (!nome || nome.trim() === '') {
+        nome = 'Usuario';
+    }
+    // Pega as primeiras letras de cada parte do nome (máx 2 letras)
+    const iniciais = nome.split(' ')
+        .map(palavra => palavra[0])
+        .join('')
+        .toUpperCase()
+        .slice(0, 2);
+    
+    // Se não conseguiu iniciais, usa 'U'
+    const letras = iniciais || 'U';
+    
+    // Retorna URL da API com iniciais e fundo aleatório
+    return `https://ui-avatars.com/api/?name=${letras}&background=1da1f2&color=fff&bold=true&size=128&rounded=true&length=2`;
+}
+
+// Avatar padrão fixo (fallback caso a API falhe)
+const AVATAR_PADRAO_FIXO = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 24 24" fill="%23999"%3E%3Cpath d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/%3E%3C/svg%3E';
+
+// Função principal para obter a URL do avatar
+function getAvatarUrl(avatarUrl, username = '') {
+    // Se o usuário já tem uma foto personalizada, usa ela
+    if (avatarUrl && avatarUrl.trim() !== '' && avatarUrl !== 'null' && avatarUrl !== 'undefined') {
+        return avatarUrl;
+    }
+    
+    // Se não tem foto, gera avatar com as iniciais do nome
+    if (username) {
+        return gerarAvatarComIniciais(username);
+    }
+    
+    // Fallback: avatar SVG puro
+    return AVATAR_PADRAO_FIXO;
+}
+
+// Função para tratar erro de carregamento da imagem
+function handleImageError(imgElement, username = '') {
+    if (imgElement.src !== AVATAR_PADRAO_FIXO) {
+        // Tenta gerar avatar com iniciais
+        if (username) {
+            imgElement.src = gerarAvatarComIniciais(username);
+        } else {
+            imgElement.src = AVATAR_PADRAO_FIXO;
+        }
+        imgElement.onerror = null;
+    }
+}
 
 // ════════════════════════════════════════
 //  macOS DOCK TOGGLE
@@ -303,16 +356,30 @@ function showApp() {
 
 
 function updateUI() {
-    ['sidebar-avatar','post-avatar'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el && currentUser) el.src = currentUser.avatar;
-    });
+    // Sidebar avatar - agora com iniciais se não tiver foto
+    const sidebarAvatar = document.getElementById('sidebar-avatar');
+    if (sidebarAvatar && currentUser) {
+        sidebarAvatar.src = getAvatarUrl(currentUser.avatar, currentUser.username);
+        sidebarAvatar.onerror = function() { 
+            handleImageError(this, currentUser.username);
+        };
+    }
+    
+    // Post avatar (área de criar post)
+    const postAvatar = document.getElementById('post-avatar');
+    if (postAvatar && currentUser) {
+        postAvatar.src = getAvatarUrl(currentUser.avatar, currentUser.username);
+        postAvatar.onerror = function() { 
+            handleImageError(this, currentUser.username);
+        };
+    }
+    
+    // Username e handle
     const su = document.getElementById('sidebar-username');
     const sh = document.getElementById('sidebar-handle');
     if (su) su.textContent = currentUser.username;
     if (sh) sh.textContent = `@${currentUser.username}`;
 }
-
 // ════════════════════════════════════════
 //  NAVIGATION
 // ════════════════════════════════════════
@@ -465,11 +532,14 @@ function createPostElement(post) {
         ? `<div class="retweet-indicator"><i class="fas fa-retweet"></i><span>${escapeHtml(post.retweetedBy)} retweetou</span></div>`
         : '';
 
+    // 🔧 AVATAR PADRÃO - URL calculada aqui
+    const avatarUrl = getAvatarUrl(post.avatar, post.username);
+
     return `
     <div class="post" data-post-id="${post.id}">
         ${rtIndicator}
         <div class="post-header">
-            <img src="${escapeHtml(post.avatar || '')}" class="post-avatar" onclick="viewUserProfile('${post.userId}')" alt="avatar">
+            <img src="${avatarUrl}" class="post-avatar" onclick="viewUserProfile('${post.userId}')" alt="avatar" onerror="this.onerror=null;this.src='${AVATAR_PADRAO_FIXO}'">
             <div class="post-info">
                 <div class="post-user">
                     <span class="post-username" onclick="viewUserProfile('${post.userId}')">${escapeHtml(post.username)}</span>
@@ -480,14 +550,10 @@ function createPostElement(post) {
                 <div class="post-content">${escapeHtml(post.content)}</div>
                 ${post.imageUrl ? `<img src="${post.imageUrl}" class="post-image" onclick="openImageModal('${escapeHtml(post.imageUrl)}')" alt="imagem do post">` : ''}
                 <div class="post-actions">
-
-
                    <div class="post-action like-action ${isLiked ? 'liked' : ''}" onclick="likePost('${post.id}')">
                         <i class="fas fa-heart"></i>
                         <span class="like-count">${post.likes?.length || 0}</span>
                     </div>
-
-
                    <div class="post-action" onclick="toggleComments(&quot;${post.id}&quot;)">
                         <i class="fas fa-comment"></i>
                         <span>${post.comments?.length || 0}</span>
@@ -503,9 +569,12 @@ function createPostElement(post) {
                 </div>
                 <div class="comments-section" id="comments-${post.id}" style="display:none;">
                     <div id="comments-list-${post.id}">
-                        ${(post.comments || []).map(c => `
+                        ${(post.comments || []).map(c => {
+                            // 🔧 TAMBÉM PARA COMENTÁRIOS:
+                            const commentAvatarUrl = getAvatarUrl(c.avatar, c.username);
+                            return `
                             <div class="comment">
-                                <img src="${escapeHtml(c.avatar || '')}" class="comment-avatar" onclick="viewUserProfile('${c.userId}')" alt="">
+                                <img src="${commentAvatarUrl}" class="comment-avatar" onclick="viewUserProfile('${c.userId}')" alt="" onerror="this.onerror=null;this.src='${AVATAR_PADRAO_FIXO}'">
                                 <div class="comment-content">
                                     <div class="comment-user">
                                         <span class="comment-username" onclick="viewUserProfile('${c.userId}')">${escapeHtml(c.username)}</span>
@@ -513,7 +582,8 @@ function createPostElement(post) {
                                     </div>
                                     <div class="comment-text">${escapeHtml(c.content)}</div>
                                 </div>
-                            </div>`).join('') || '<p style="color:var(--text-muted);font-size:0.82rem;padding:8px 0;">Nenhum comentário ainda</p>'}
+                            </div>`;
+                        }).join('') || '<p style="color:var(--text-muted);font-size:0.82rem;padding:8px 0;">Nenhum comentário ainda</p>'}
                     </div>
                     <div class="comment-form">
                         <input type="text" id="comment-input-${post.id}" class="comment-input" placeholder="Adicione um comentário...">
@@ -746,8 +816,8 @@ async function loadProfileData(userId) {
                 ${user.coverImage ? `<img src="${escapeHtml(user.coverImage)}" class="profile-cover-img" alt="capa">` : ''}
             </div>
             <div class="profile-avatar-wrapper">
-                <img src="${escapeHtml(user.avatar || '')}" class="profile-avatar-large" alt="avatar">
-            </div>
+    <img src="${getAvatarUrl(user.avatar, user.username)}" class="profile-avatar-large" alt="Avatar de ${escapeHtml(user.username)}" onerror="this.onerror=null;this.src='${AVATAR_PADRAO_FIXO}'">
+</div>
             <div class="profile-info">
                 <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;">
                     <div>
