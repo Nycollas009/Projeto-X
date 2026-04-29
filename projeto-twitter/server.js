@@ -47,13 +47,13 @@ wss.on('connection', (ws) => {
 });
 
 function broadcastUpdate(type, data) {
+    console.log(`📡 Broadcasting: ${type} para ${connectedClients.length} clientes`);
     connectedClients.forEach(client => {
         if (client.readyState === WebSocket.OPEN) {
             client.send(JSON.stringify({ type, data }));
         }
     });
 }
-
 const bcrypt = require('bcrypt');
 const SALT_ROUNDS = 10;
 
@@ -585,7 +585,9 @@ app.post('/messages', (req, res) => {
 // ========== NOTIFICAÇÕES ==========
 app.get('/notifications/:userId', (req, res) => {
     const db = readDB();
-    const notifications = db.notifications.filter(n => n.userId === req.params.userId);
+    const notifications = db.notifications.filter(n => 
+        String(n.userId) === String(req.params.userId)
+    );
     res.json(notifications.sort((a, b) => b.timestamp - a.timestamp));
 });
 

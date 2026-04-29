@@ -1071,12 +1071,9 @@ async function likeMessage(msgId) {
     } catch { /* silent */ }
 }
 
+
 // ════════════════════════════════════════
-//  NOTIFICATIONS  ARUMMMAR
-
-
-
-
+//  NOTIFICATIONS  
 // ════════════════════════════════════════
 async function loadNotifications() {
     try {
@@ -1134,7 +1131,6 @@ function updateNotificationBadge() {
         badge.style.display = 'none';
     }
 }
-
 // ════════════════════════════════════════
 //  SETTINGS
 // ════════════════════════════════════════
@@ -1185,17 +1181,23 @@ function connectWebSocket() {
         ws = new WebSocket('wss:https://meu-twitter-projeto-x.onrender.com');
         ws.onopen  = () => console.log('✅ WebSocket conectado');
         ws.onmessage = (event) => {
-        const data = JSON.parse(event.data);
-        handleWebSocketMessage(data); // Sua função que trata as notificações/posts
-    };
-        ws.onerror  = () => { /* silent */ };
-        ws.onclose = () => {
-        console.log('🔌 WebSocket desconectado. Tentando reconectar...');
-        setTimeout(connectWebSocket, 3000); // Tenta reconectar se cair
-    };
+            try {
+                console.log('RAW:', event.data);
+                const data = JSON.parse(event.data);
+                console.log('PARSED:', data);
+                handleRealtime(data);
+            } catch (e) {
+                console.error('Parse error:', e);
+            }
+        };
+         ws.onerror = (e) => console.error('WS error:', e);
+ws.onclose = (e) => {
+    console.log('WS fechado, código:', e.code, 'motivo:', e.reason);
+    setTimeout(connectWebSocket, 4000);
+};
     } catch { /* silent */ }
 }
-// Adicione depois da função connectWebSocket()
+
 // ════════════════════════════════════════
 //  WEBSOCKET 
 // ════════════════════════════════════════
