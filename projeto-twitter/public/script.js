@@ -88,6 +88,7 @@ function setupEventListeners() {
     });
 }
 
+
 // ════════════════════════════════════════
 //  AVATAR PADRÃO COM INICIAIS (UI Avatars)
 // ════════════════════════════════════════
@@ -141,6 +142,33 @@ function handleImageError(imgElement, username = '') {
         }
         imgElement.onerror = null;
     }
+}
+
+
+function updateUI() {
+    // Sidebar avatar - agora com iniciais se não tiver foto
+    const sidebarAvatar = document.getElementById('sidebar-avatar');
+    if (sidebarAvatar && currentUser) {
+        sidebarAvatar.src = getAvatarUrl(currentUser.avatar, currentUser.username);
+        sidebarAvatar.onerror = function() { 
+            handleImageError(this, currentUser.username);
+        };
+    }
+    
+    // Post avatar (área de criar post)
+    const postAvatar = document.getElementById('post-avatar');
+    if (postAvatar && currentUser) {
+        postAvatar.src = getAvatarUrl(currentUser.avatar, currentUser.username);
+        postAvatar.onerror = function() { 
+            handleImageError(this, currentUser.username);
+        };
+    }
+    
+    // Username e handle
+    const su = document.getElementById('sidebar-username');
+    const sh = document.getElementById('sidebar-handle');
+    if (su) su.textContent = currentUser.username;
+    if (sh) sh.textContent = `@${currentUser.username}`;
 }
 
 // ════════════════════════════════════════
@@ -532,7 +560,7 @@ function createPostElement(post) {
         ? `<div class="retweet-indicator"><i class="fas fa-retweet"></i><span>${escapeHtml(post.retweetedBy)} retweetou</span></div>`
         : '';
 
-    // 🔧 AVATAR PADRÃO - URL calculada aqui
+
     const avatarUrl = getAvatarUrl(post.avatar, post.username);
 
     return `
@@ -790,7 +818,6 @@ function updateFollowButtons(userId, nowFollowing) {
         }
     });
 }
-
 // ════════════════════════════════════════
 //  PROFILE
 // ════════════════════════════════════════
@@ -816,8 +843,8 @@ async function loadProfileData(userId) {
                 ${user.coverImage ? `<img src="${escapeHtml(user.coverImage)}" class="profile-cover-img" alt="capa">` : ''}
             </div>
             <div class="profile-avatar-wrapper">
-    <img src="${getAvatarUrl(user.avatar, user.username)}" class="profile-avatar-large" alt="Avatar de ${escapeHtml(user.username)}" onerror="this.onerror=null;this.src='${AVATAR_PADRAO_FIXO}'">
-</div>
+              <img src="${getAvatarUrl(user.avatar, user.username)}" class="profile-avatar-large" alt="avatar" onerror="this.onerror=null;this.src='${AVATAR_PADRAO_FIXO}'">
+            </div>
             <div class="profile-info">
                 <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;">
                     <div>
@@ -878,6 +905,7 @@ async function loadProfileData(userId) {
         showToast('Erro ao carregar perfil', 'error');
     }
 }
+
 
 async function updateProfile() {
     const avatar     = document.getElementById('edit-avatar-url')?.value;
