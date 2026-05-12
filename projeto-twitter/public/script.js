@@ -431,13 +431,14 @@ async function loadProfileByUsername(username) {
         document.getElementById('view-profile')?.classList.add('active');
     } catch (e) { showToast('Erro ao carregar perfil', 'error'); }
 }
-
 // ════════════════════════════════════════
 //  POSTS
 // ════════════════════════════════════════
 async function createPost() {
     const content = document.getElementById('post-input').value.trim();
     let imageUrl  = document.getElementById('image-url-input')?.value.trim() || '';
+
+
 
     if (!content && !imageUrl && !currentImageFile) {
         showToast('Digite algo ou adicione uma imagem!', 'warning');
@@ -471,6 +472,8 @@ async function createPost() {
             currentImageFile = null;
             showToast('Post publicado! 🎉', 'success');
             loadPosts();
+        } else if (res.status === 400) {
+            showToast('Post contém conteúdo inapropriado!', 'error');
         } else {
             showToast('Erro ao publicar post', 'error');
         }
@@ -569,21 +572,25 @@ function createPostElement(post) {
                 </div>
                 <div class="comments-section" id="comments-${post.id}" style="display:none;">
                     <div id="comments-list-${post.id}">
-                        ${(post.comments || []).map(c => {
-                            // 🔧 TAMBÉM PARA COMENTÁRIOS:
-                            const commentAvatarUrl = getAvatarUrl(c.avatar, c.username);
-                            return `
-                            <div class="comment">
-                                <img src="${commentAvatarUrl}" class="comment-avatar" onclick="viewUserProfile('${c.userId}')" alt="" onerror="this.onerror=null;this.src='${AVATAR_PADRAO_FIXO}'">
-                                <div class="comment-content">
-                                    <div class="comment-user">
-                                        <span class="comment-username" onclick="viewUserProfile('${c.userId}')">${escapeHtml(c.username)}</span>
-                                        <span class="comment-handle">@${escapeHtml(c.username)}</span>
-                                    </div>
-                                    <div class="comment-text">${escapeHtml(c.content)}</div>
-                                </div>
-                            </div>`;
-                        }).join('') || '<p style="color:var(--text-muted);font-size:0.82rem;padding:8px 0;">Nenhum comentário ainda</p>'}
+                       ${(post.comments || []).map(c => {
+    const commentAvatarUrl = getAvatarUrl(c.avatar, c.username);
+    return `
+    <div class="comment">
+        <img src="${commentAvatarUrl}" class="comment-avatar" onclick="viewUserProfile('${c.userId}')" alt="" onerror="this.onerror=null;this.src='${AVATAR_PADRAO_FIXO}'">
+        <div class="comment-content">
+            <div class="comment-user">
+                <span class="comment-username" onclick="viewUserProfile('${c.userId}')">${escapeHtml(c.username)}</span>
+                <span class="comment-handle">@${escapeHtml(c.username)}</span>
+                ${String(c.userId) === String(currentUser.id) ? `
+                    <span style="margin-left:auto;cursor:pointer;color:var(--text-muted);" 
+                          onclick="deleteComment('${post.id}','${c.id}')">
+                        <i class="fas fa-trash" style="font-size:0.75rem;"></i>
+                    </span>` : ''}
+            </div>
+            <div class="comment-text">${escapeHtml(c.content)}</div>
+        </div>
+    </div>`;
+}).join('') || '<p style="color:var(--text-muted);font-size:0.82rem;padding:8px 0;">Nenhum comentário ainda</p>'}
                     </div>
                     <div class="comment-form">
                         <input type="text" id="comment-input-${post.id}" class="comment-input" placeholder="Adicione um comentário...">
@@ -700,7 +707,13 @@ async function addComment(postId) {
                 content
             })
         });
-        if (res.ok) { input.value = ''; showToast('Comentário adicionado!', 'success'); loadPosts(); }
+         if (res.ok) { 
+            input.value = ''; 
+            showToast('Comentário adicionado!', 'success'); 
+            loadPosts(); 
+        } else if (res.status === 400) {
+            showToast('Comentário contém conteúdo inapropriado! ⚠️', 'error');
+        }
     } catch { /* silent */ }
 }
 
@@ -1104,6 +1117,21 @@ function renderMessage(msg) {
     </div>`;
 }
 
+// DELETAR COMMENT
+
+async function deleteComment(postId, commentId) {
+    if (!confirm('Excluir comentário?')) return;
+    try {
+        const res = await fetch(`${API_URL}/posts/${postId}/comments/${commentId}`, {
+            method: 'DELETE',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({ userId: currentUser.id })
+        });
+        if (res.ok) { showToast('Comentário excluído', 'success'); loadPosts(); }
+        else showToast('Sem permissão', 'error');
+    } catch { /* silent */ }
+}
+
 async function sendMessage() {
     const input   = document.getElementById('message-input');
     const content = input?.value.trim();
@@ -1113,10 +1141,16 @@ async function sendMessage() {
             method: 'POST',
             headers: {'Content-Type':'application/json'},
             body: JSON.stringify({ from: currentUser.id, to: currentConversation, content })
-        });
-        if (res.ok) { input.value = ''; openConversation(currentConversation); }
+          });
+        if (res.ok) { 
+            input.value = ''; 
+            openConversation(currentConversation); 
+        } else if (res.status === 400) {
+            showToast('Mensagem contém conteúdo inapropriado! ⚠️', 'error');
+        }
     } catch { /* silent */ }
 }
+
 
 async function deleteMessage(msgId) {
     if (!confirm('Excluir mensagem?')) return;
