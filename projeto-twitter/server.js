@@ -32,7 +32,6 @@ if (!fs.existsSync(DB_FILE)) {
 const readDB = () => JSON.parse(fs.readFileSync(DB_FILE, 'utf-8'));
 const writeDB = (data) => fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2));
 
-const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
 
 let connectedClients = [];
@@ -48,73 +47,15 @@ wss.on('connection', (ws) => {
 });
 
 function broadcastUpdate(type, data) {
-    console.log(`📡 Broadcasting: ${type} para ${connectedClients.length} clientes`);
     connectedClients.forEach(client => {
         if (client.readyState === WebSocket.OPEN) {
             client.send(JSON.stringify({ type, data }));
         }
     });
 }
+
 const bcrypt = require('bcrypt');
 const SALT_ROUNDS = 10;
-
-//========== CENSURA ===========
-
-const palavrasProibidas = ['porra', 'porr4', 'p0rra', 'porras', 'poha', 'p0ha', 'poh4', 'pohas',
-    'merda', 'merd4', 'm3rda', 'merdas',
-    'caralho', 'c4ralho', 'car4lho', 'caralh0',
-    'foda', 'f0da', 'fodas', 'fode', 'fodendo', 'fodido', 'fodida',
-    'viado', 'vi4do', 'viad0', 'viados',
-    'buceta', 'buc3ta', 'buc4ta', 'bucetas',
-    'cu', 'cú', 'viadinho', 'fuder', 'fudendo',
-    'puta', 'put4', 'putas', 'putaria', 'put4ria',
-    'vagabunda', 'vag4bunda', 'vagabundo',
-    'desgraça', 'desgr4ça', 'desgraçado', 'desgraçada',
-    'inferno', 'inf3rno',
-    'idiota', 'idi0ta', 'idiotas',
-    'imbecil', 'imb3cil', 'imbecis',
-    'burro', 'burra', 'burros', 'burras',
-    'otario', 'otário', '0t4rio', 'otaria',
-    'corno', 'corn0', 'cornos', 'corna',
-    'safado', 'saf4do', 'safada', 'safados',
-    'piranha', 'pir4nha', 'piranhas',
-    'prostituta', 'prost1tuta', 'prostitutas',
-    'punheta', 'punh3ta', 'punhetas',
-    'arrombado', 'arromb4do', 'arrombada',
-    'fdp', 'f.d.p', 'filhadaputa', 'filhode puta', 'filho da puta',
-    'vsf', 'v.s.f', 'vai se foder', 'vaise fuder',
-    'tnc', 't.n.c', 'tomanocú', 'toma no cu',
-    'pnc', 'p.n.c',
-    'krl', 'krlh',
-    'pqp', 'p.q.p',
-    'stnc', 's.t.n.c',
-    'cacete', 'cac3te', 'cacetes',
-    'pau', 'p4u',
-    'rola', 'r0la', 'rolas',
-    'xota', 'xox0ta', 'xoxota',
-    'pentelho', 'pent3lho',
-    'cuzao', 'cuzão', 'cuz4o',
-    'babaca', 'bab4ca', 'babacas',
-    'retardado', 'ret4rdado', 'retardada',
-    'mongol', 'm0ngol',
-    'lixo', 'l1xo',
-    'inutil', 'inútil', 'inuteis',
-    'canalha', 'can4lha', 'canalhas',
-    'lazarento', 'laz4rento', 'lazarenta',
-    'maldito', 'mald1to', 'maldita',
-    'assassino', 'ass4ssino',
-    'prostituto', 'prost1tuto','prostitutos',
-    'bosta', 'b0sta', 'bostas',
-    'meretriz', 'mer3triz', 'meretrizes', 'furry', 'furries'];
-
-function contemPalavrasProibidas(texto) {
-    const textoLower = texto.toLowerCase();
-    return palavrasProibidas.some(palavra => textoLower.includes(palavra));
-}
-
-
-
-
 
 // == AUTENTICAÇÃO ==
 app.post('/login-register', async (req, res) => {
@@ -273,13 +214,7 @@ app.get('/posts/user/:userId', (req, res) => {
 });
 
 app.post('/posts', (req, res) => {
-    
-
     const { userId, username, avatar, content, imageUrl } = req.body;
-
-    if (contemPalavrasProibidas(content)) {
-        return res.status(400).json({ error: "Post contém conteúdo inapropriado" });
-    }
     const db = readDB();
     const newPost = {
         id: Date.now().toString(),
@@ -457,11 +392,6 @@ app.post('/posts/retweet', (req, res) => {
 
 app.post('/posts/comment', (req, res) => {
     const { postId, userId, username, avatar, content } = req.body;
-
-    if (contemPalavrasProibidas(content)) {
-        return res.status(400).json({ error: "Comentário contém conteúdo inapropriado" });
-    }
-
     const db = readDB();
     const post = db.posts.find(p => p.id === postId);
     
@@ -504,29 +434,6 @@ app.post('/posts/comment', (req, res) => {
     } else {
         res.status(404).json({ error: "Post não encontrado" });
     }
-});
-
-// ========== DELETE COMMENT ==========
-
-app.delete('/posts/:postId/comments/:commentId', (req, res) => {
-    const { postId, commentId } = req.params;
-    const { userId } = req.body;
-    const db = readDB();
-
-    const post = db.posts.find(p => String(p.id) === String(postId));
-    if (!post) return res.status(404).json({ error: 'Post não encontrado' });
-
-    const commentIndex = post.comments.findIndex(c => 
-        String(c.id) === String(commentId) && String(c.userId) === String(userId)
-    );
-
-    if (commentIndex === -1) return res.status(403).json({ error: 'Sem permissão' });
-
-    post.comments.splice(commentIndex, 1);
-    writeDB(db);
-
-    broadcastUpdate('comment_deleted', { postId, commentId });
-    res.json({ success: true });
 });
 
 // =ENDPOINT RETWEET
@@ -659,10 +566,6 @@ app.get('/messages/:userId/:otherUserId', (req, res) => {
 
 app.post('/messages', (req, res) => {
     const { from, to, content } = req.body;
-
-    if (contemPalavrasProibidas(content)) {
-        return res.status(400).json({ error: "Mensagem contém conteúdo inapropriado" });
-    }   
     const db = readDB();
     const message = {
         id: Date.now().toString(),
@@ -682,10 +585,8 @@ app.post('/messages', (req, res) => {
 // ========== NOTIFICAÇÕES ==========
 app.get('/notifications/:userId', (req, res) => {
     const db = readDB();
-    const notifications = db.notifications.filter(n => 
-        String(n.userId) === String(req.params.userId)
-    );
-      res.json(notifications.sort((a, b) => b.timestamp - a.timestamp));
+    const notifications = db.notifications.filter(n => n.userId === req.params.userId);
+    res.json(notifications.sort((a, b) => b.timestamp - a.timestamp));
 });
 
 app.post('/notifications/:notificationId/read', (req, res) => {
