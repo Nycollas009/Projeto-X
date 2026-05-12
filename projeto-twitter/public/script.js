@@ -89,87 +89,6 @@ function setupEventListeners() {
 }
 
 
-// ════════════════════════════════════════
-//  AVATAR PADRÃO COM INICIAIS (UI Avatars)
-// ════════════════════════════════════════
-
-// Função para gerar URL do avatar com as iniciais do usuário
-function gerarAvatarComIniciais(nome) {
-    if (!nome || nome.trim() === '') {
-        nome = 'Usuario';
-    }
-    // Pega as primeiras letras de cada parte do nome (máx 2 letras)
-    const iniciais = nome.split(' ')
-        .map(palavra => palavra[0])
-        .join('')
-        .toUpperCase()
-        .slice(0, 2);
-    
-    // Se não conseguiu iniciais, usa 'U'
-    const letras = iniciais || 'U';
-    
-    // Retorna URL da API com iniciais e fundo aleatório
-    return `https://ui-avatars.com/api/?name=${letras}&background=1da1f2&color=fff&bold=true&size=128&rounded=true&length=2`;
-}
-
-// Avatar padrão fixo (fallback caso a API falhe)
-const AVATAR_PADRAO_FIXO = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 24 24" fill="%23999"%3E%3Cpath d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/%3E%3C/svg%3E';
-
-// Função principal para obter a URL do avatar
-function getAvatarUrl(avatarUrl, username = '') {
-    // Se o usuário já tem uma foto personalizada, usa ela
-    if (avatarUrl && avatarUrl.trim() !== '' && avatarUrl !== 'null' && avatarUrl !== 'undefined') {
-        return avatarUrl;
-    }
-    
-    // Se não tem foto, gera avatar com as iniciais do nome
-    if (username) {
-        return gerarAvatarComIniciais(username);
-    }
-    
-    // Fallback: avatar SVG puro
-    return AVATAR_PADRAO_FIXO;
-}
-
-// Função para tratar erro de carregamento da imagem
-function handleImageError(imgElement, username = '') {
-    if (imgElement.src !== AVATAR_PADRAO_FIXO) {
-        // Tenta gerar avatar com iniciais
-        if (username) {
-            imgElement.src = gerarAvatarComIniciais(username);
-        } else {
-            imgElement.src = AVATAR_PADRAO_FIXO;
-        }
-        imgElement.onerror = null;
-    }
-}
-
-
-function updateUI() {
-    // Sidebar avatar - agora com iniciais se não tiver foto
-    const sidebarAvatar = document.getElementById('sidebar-avatar');
-    if (sidebarAvatar && currentUser) {
-        sidebarAvatar.src = getAvatarUrl(currentUser.avatar, currentUser.username);
-        sidebarAvatar.onerror = function() { 
-            handleImageError(this, currentUser.username);
-        };
-    }
-    
-    // Post avatar (área de criar post)
-    const postAvatar = document.getElementById('post-avatar');
-    if (postAvatar && currentUser) {
-        postAvatar.src = getAvatarUrl(currentUser.avatar, currentUser.username);
-        postAvatar.onerror = function() { 
-            handleImageError(this, currentUser.username);
-        };
-    }
-    
-    // Username e handle
-    const su = document.getElementById('sidebar-username');
-    const sh = document.getElementById('sidebar-handle');
-    if (su) su.textContent = currentUser.username;
-    if (sh) sh.textContent = `@${currentUser.username}`;
-}
 
 // ════════════════════════════════════════
 //  macOS DOCK TOGGLE
@@ -382,6 +301,61 @@ function showApp() {
       startPolling(); 
 }
 
+// ════════════════════════════════════════
+//  AVATAR PADRÃO COM INICIAIS (UI Avatars)
+// ════════════════════════════════════════
+
+// Função para gerar URL do avatar com as iniciais do usuário
+function gerarAvatarComIniciais(nome) {
+    if (!nome || nome.trim() === '') {
+        nome = 'Usuario';
+    }
+    // Pega as primeiras letras de cada parte do nome (máx 2 letras)
+    const iniciais = nome.split(' ')
+        .map(palavra => palavra[0])
+        .join('')
+        .toUpperCase()
+        .slice(0, 2);
+    
+    // Se não conseguiu iniciais, usa 'U'
+    const letras = iniciais || 'U';
+    
+    // Retorna URL da API com iniciais e fundo aleatório
+    return `https://ui-avatars.com/api/?name=${letras}&background=1da1f2&color=fff&bold=true&size=128&rounded=true&length=2`;
+}
+
+// Avatar padrão fixo (fallback caso a API falhe)
+const AVATAR_PADRAO_FIXO = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 24 24" fill="%23999"%3E%3Cpath d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/%3E%3C/svg%3E';
+
+// Função principal para obter a URL do avatar
+function getAvatarUrl(avatarUrl, username = '') {
+    // Se o usuário já tem uma foto personalizada, usa ela
+    if (avatarUrl && avatarUrl.trim() !== '' && avatarUrl !== 'null' && avatarUrl !== 'undefined') {
+        return avatarUrl;
+    }
+    
+    // Se não tem foto, gera avatar com as iniciais do nome
+    if (username) {
+        return gerarAvatarComIniciais(username);
+    }
+    
+    // Fallback: avatar SVG puro
+    return AVATAR_PADRAO_FIXO;
+}
+
+// Função para tratar erro de carregamento da imagem
+function handleImageError(imgElement, username = '') {
+    if (imgElement.src !== AVATAR_PADRAO_FIXO) {
+        // Tenta gerar avatar com iniciais
+        if (username) {
+            imgElement.src = gerarAvatarComIniciais(username);
+        } else {
+            imgElement.src = AVATAR_PADRAO_FIXO;
+        }
+        imgElement.onerror = null;
+    }
+}
+
 
 function updateUI() {
     // Sidebar avatar - agora com iniciais se não tiver foto
@@ -467,6 +441,8 @@ async function createPost() {
     const content = document.getElementById('post-input').value.trim();
     let imageUrl  = document.getElementById('image-url-input')?.value.trim() || '';
 
+
+
     if (!content && !imageUrl && !currentImageFile) {
         showToast('Digite algo ou adicione uma imagem!', 'warning');
         return;
@@ -499,6 +475,8 @@ async function createPost() {
             currentImageFile = null;
             showToast('Post publicado! 🎉', 'success');
             loadPosts();
+        } else if (res.status === 400) {
+            showToast('Post contém conteúdo inapropriado!', 'error');
         } else {
             showToast('Erro ao publicar post', 'error');
         }
@@ -549,7 +527,6 @@ function displayPosts(posts) {
     timeline.innerHTML = posts.map(createPostElement).join('');
     updatePostsCount();
 }
-
 function createPostElement(post) {
     const isLiked    = post.likes?.includes(currentUser.id);
     const isRetweet  = post.retweets?.includes(currentUser.id);
@@ -560,7 +537,7 @@ function createPostElement(post) {
         ? `<div class="retweet-indicator"><i class="fas fa-retweet"></i><span>${escapeHtml(post.retweetedBy)} retweetou</span></div>`
         : '';
 
-
+    // 🔧 AVATAR PADRÃO - URL calculada aqui
     const avatarUrl = getAvatarUrl(post.avatar, post.username);
 
     return `
@@ -597,21 +574,25 @@ function createPostElement(post) {
                 </div>
                 <div class="comments-section" id="comments-${post.id}" style="display:none;">
                     <div id="comments-list-${post.id}">
-                        ${(post.comments || []).map(c => {
-                            // 🔧 TAMBÉM PARA COMENTÁRIOS:
-                            const commentAvatarUrl = getAvatarUrl(c.avatar, c.username);
-                            return `
-                            <div class="comment">
-                                <img src="${commentAvatarUrl}" class="comment-avatar" onclick="viewUserProfile('${c.userId}')" alt="" onerror="this.onerror=null;this.src='${AVATAR_PADRAO_FIXO}'">
-                                <div class="comment-content">
-                                    <div class="comment-user">
-                                        <span class="comment-username" onclick="viewUserProfile('${c.userId}')">${escapeHtml(c.username)}</span>
-                                        <span class="comment-handle">@${escapeHtml(c.username)}</span>
-                                    </div>
-                                    <div class="comment-text">${escapeHtml(c.content)}</div>
-                                </div>
-                            </div>`;
-                        }).join('') || '<p style="color:var(--text-muted);font-size:0.82rem;padding:8px 0;">Nenhum comentário ainda</p>'}
+                       ${(post.comments || []).map(c => {
+    const commentAvatarUrl = getAvatarUrl(c.avatar, c.username);
+    return `
+    <div class="comment">
+        <img src="${commentAvatarUrl}" class="comment-avatar" onclick="viewUserProfile('${c.userId}')" alt="" onerror="this.onerror=null;this.src='${AVATAR_PADRAO_FIXO}'">
+        <div class="comment-content">
+            <div class="comment-user">
+                <span class="comment-username" onclick="viewUserProfile('${c.userId}')">${escapeHtml(c.username)}</span>
+                <span class="comment-handle">@${escapeHtml(c.username)}</span>
+                ${String(c.userId) === String(currentUser.id) ? `
+                    <span style="margin-left:auto;cursor:pointer;color:var(--text-muted);" 
+                          onclick="deleteComment('${post.id}','${c.id}')">
+                        <i class="fas fa-trash" style="font-size:0.75rem;"></i>
+                    </span>` : ''}
+            </div>
+            <div class="comment-text">${escapeHtml(c.content)}</div>
+        </div>
+    </div>`;
+}).join('') || '<p style="color:var(--text-muted);font-size:0.82rem;padding:8px 0;">Nenhum comentário ainda</p>'}
                     </div>
                     <div class="comment-form">
                         <input type="text" id="comment-input-${post.id}" class="comment-input" placeholder="Adicione um comentário...">
@@ -728,7 +709,13 @@ async function addComment(postId) {
                 content
             })
         });
-        if (res.ok) { input.value = ''; showToast('Comentário adicionado!', 'success'); loadPosts(); }
+        if (res.ok) { 
+            input.value = '';
+             showToast('Comentário adicionado!', 'success');
+             loadPosts();
+            } else if (res.status === 400) {
+                showToast('Comentário contém conteúdo inapropriado', 'error');
+            } 
     } catch { /* silent */ }
 }
 
@@ -742,6 +729,20 @@ function openImageModal(url) {
     const img   = document.getElementById('modal-image');
     if (modal && img) { img.src = url; modal.classList.add('active'); }
 }
+
+async function deleteComment(postId, commentId) {
+    if (!confirm('Excluir comentário?')) return;
+    try {
+        const res = await fetch(`${API_URL}/posts/${postId}/comments/${commentId}`, {
+            method: 'DELETE',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({ userId: currentUser.id })
+        });
+        if (res.ok) { showToast('Comentário excluído', 'success'); loadPosts(); }
+        else showToast('Sem permissão', 'error');
+    } catch { /* silent */ }
+}
+
 
 // ════════════════════════════════════════
 //  BOOKMARKS
@@ -818,6 +819,7 @@ function updateFollowButtons(userId, nowFollowing) {
         }
     });
 }
+
 // ════════════════════════════════════════
 //  PROFILE
 // ════════════════════════════════════════
@@ -843,7 +845,7 @@ async function loadProfileData(userId) {
                 ${user.coverImage ? `<img src="${escapeHtml(user.coverImage)}" class="profile-cover-img" alt="capa">` : ''}
             </div>
             <div class="profile-avatar-wrapper">
-              <img src="${getAvatarUrl(user.avatar, user.username)}" class="profile-avatar-large" alt="avatar" onerror="this.onerror=null;this.src='${AVATAR_PADRAO_FIXO}'">
+               <img src="${getAvatarUrl(user.avatar, user.username)}" class="profile-avatar-large" alt="avatar" onerror="this.onerror=null;this.src='${AVATAR_PADRAO_FIXO}'">
             </div>
             <div class="profile-info">
                 <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;">
@@ -905,7 +907,6 @@ async function loadProfileData(userId) {
         showToast('Erro ao carregar perfil', 'error');
     }
 }
-
 
 async function updateProfile() {
     const avatar     = document.getElementById('edit-avatar-url')?.value;
@@ -1142,7 +1143,12 @@ async function sendMessage() {
             headers: {'Content-Type':'application/json'},
             body: JSON.stringify({ from: currentUser.id, to: currentConversation, content })
         });
-        if (res.ok) { input.value = ''; openConversation(currentConversation); }
+        if (res.ok) {
+             input.value = '';
+              openConversation(currentConversation);
+             } else if (res.status === 400) {
+                showToast('Não é possível enviar mensagem para este usuário', 'error');
+             }
     } catch { /* silent */ }
 }
 
@@ -1168,7 +1174,6 @@ async function likeMessage(msgId) {
         if (res.ok) openConversation(currentConversation);
     } catch { /* silent */ }
 }
-
 
 // ════════════════════════════════════════
 //  NOTIFICATIONS  
@@ -1229,6 +1234,7 @@ function updateNotificationBadge() {
         badge.style.display = 'none';
     }
 }
+
 // ════════════════════════════════════════
 //  SETTINGS
 // ════════════════════════════════════════
@@ -1267,6 +1273,8 @@ function openSettingsModal() {
     modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
 }
 
+
+
 // ════════════════════════════════════════
 //  WEBSOCKET
 // ════════════════════════════════════════
@@ -1296,9 +1304,11 @@ ws.onclose = (e) => {
     } catch { /* silent */ }
 }
 
+
 // ════════════════════════════════════════
-//  WEBSOCKET 
+//  WEBSOCKET -
 // ════════════════════════════════════════
+
 
 function handleWebSocketMessage(event) {
     try {
