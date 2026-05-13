@@ -351,7 +351,8 @@ function showApp() {
     loadSuggestions();
     updateUserStats();
     setupEmojiPicker();
-      startPolling(); 
+    startPolling(); 
+    aplicarTemaSalvo();  
 }
 
 
@@ -1248,11 +1249,20 @@ function openSettingsModal() {
                 <i class="fas fa-cog" style="color:var(--primary);margin-right:10px;"></i>Configurações
             </h2>
             <div class="settings-section">
-                <h3>Aparência</h3>
-                <button class="btn-secondary-sm" onclick="document.body.classList.toggle('high-contrast');showToast('Alto contraste alternado','info')">Alto Contraste</button>
-                <button class="btn-secondary-sm" onclick="document.body.classList.toggle('large-text');showToast('Texto grande alternado','info')">Texto Grande</button>
-                <button class="btn-secondary-sm" onclick="document.body.classList.remove('high-contrast','large-text');showToast('Resetado','info')">Resetar</button>
-            </div>
+    <h3>Tema</h3>
+    <button class="btn-secondary-sm ${localStorage.getItem('tema') === 'padrao' || !localStorage.getItem('tema') ? 'active' : ''}" 
+            onclick="mudarTema('padrao')">🟣 Padrão</button>
+    <button class="btn-secondary-sm ${localStorage.getItem('tema') === 'escuro' ? 'active' : ''}" 
+            onclick="mudarTema('escuro')">⚫ Escuro</button>
+    <button class="btn-secondary-sm ${localStorage.getItem('tema') === 'claro' ? 'active' : ''}" 
+            onclick="mudarTema('claro')">⚪ Claro</button>
+</div>
+<div class="settings-section">
+    <h3>Acessibilidade</h3>
+    <button class="btn-secondary-sm" onclick="toggleHighContrast()">Alto Contraste</button>
+    <button class="btn-secondary-sm" onclick="toggleLargeText()">Texto Grande</button>
+    <button class="btn-secondary-sm" onclick="resetAccessibility()">Resetar</button>
+</div>
             <div class="settings-section">
                 <h3>Sidebar</h3>
                 <button class="btn-secondary-sm" onclick="toggleSidebar();showToast('Sidebar alternada','info')">
@@ -1272,6 +1282,29 @@ function openSettingsModal() {
     modal.querySelector('#close-settings').addEventListener('click', () => modal.remove());
     modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
 }
+
+
+
+// ========== mudar tema =============
+
+function mudarTema(tema) {
+    document.body.classList.remove('tema-escuro', 'tema-claro');
+    
+    if (tema === 'escuro') {
+        document.body.classList.add('tema-escuro');
+    } else if (tema === 'claro') {
+        document.body.classList.add('tema-claro');
+    }
+    
+    localStorage.setItem('tema', tema);
+    showToast(`Tema ${tema} aplicado!`, 'success');
+}
+
+function aplicarTemaSalvo() {
+    const tema = localStorage.getItem('tema') || 'padrao';
+    mudarTema(tema);
+}
+
 
 // ════════════════════════════════════════
 //  WEBSOCKET

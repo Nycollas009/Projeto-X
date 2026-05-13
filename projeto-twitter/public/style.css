@@ -1349,3 +1349,36 @@ emoji-picker.active { display: block; animation: postIn 0.2s ease; }
     .main-content { margin-left: 0; margin-right: 0; margin-bottom: 76px; padding: 16px; }
     .sidebar-nav.expanded { width: 100%; }
 }
+
+
+/* Tema Escuro */
+body.tema-escuro {
+    --primary:        #667eea;
+    --secondary:      #764ba2;
+    --bg-void:        #000000;
+    --bg-dark:        #050505;
+    --bg-card:        #0a0a0a;
+    --bg-elevated:    #0f0f0f;
+    --bg-hover:       #141414;
+    --text:           #ffffff;
+    --text-secondary: #888888;
+    --border:         rgba(255,255,255,0.05);
+}
+
+/* Tema Claro */
+body.tema-claro {
+    --primary:        #5a67d8;
+    --secondary:      #764ba2;
+    --bg-void:        #f0f2f5;
+    --bg-dark:        #e4e6eb;
+    --bg-card:        #ffffff;
+    --bg-elevated:    #f7f8fa;
+    --bg-hover:       #e4e6eb;
+    --bg-glass:       rgba(255,255,255,0.85);
+    --text:           #1a1a2e;
+    --text-secondary: #65676b;
+    --text-muted:     #8a8d91;
+    --border:         rgba(0,0,0,0.1);
+    --shadow:         0 8px 32px rgba(0,0,0,0.1);
+    --shadow-glow:    0 0 40px rgba(90,103,216,0.1);
+}
