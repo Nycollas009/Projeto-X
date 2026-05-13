@@ -957,23 +957,36 @@ async function loadTrendingTopics() {
     const container = document.getElementById('trending-topics');
     if (!container) return;
 
-    const topics = [
-        { topic:'#TiwitterSocial', posts:'15.2k', icon:'fa-chart-line', color:'var(--success)' },
-        { topic:'#Inovação',    posts:'8.7k',  icon:'fa-arrow-up',   color:'var(--danger)'  },
-        { topic:'#Tecnologia',  posts:'12.3k', icon:'fa-microchip',  color:'var(--primary)' },
-        { topic:'#Design',      posts:'4.2k',  icon:'fa-paint-brush',color:'var(--accent)'  },
-        { topic:'#JavaScript',  posts:'9.1k',  icon:'fa-code',       color:'var(--warning)' },
-        { topic:'#UX',          posts:'3.8k',  icon:'fa-star',       color:'var(--accent-cyan)' },
-    ];
+    try {
+        const API_KEY = '01da66b6cd237b068a14ea339c7c0b14';
+        const res = await fetch(`https://gnews.io/api/v4/top-headlines?lang=pt&country=br&max=5&token=${API_KEY}`);
+        const data = await res.json();
 
-    container.innerHTML = topics.map(t => `
-        <div class="trend-item">
-            <div>
-                <strong>${t.topic}</strong>
-                <small>${t.posts} posts</small>
-            </div>
-            <i class="fas ${t.icon}" style="color:${t.color};"></i>
-        </div>`).join('');
+        if (!data.articles || data.articles.length === 0) {
+            container.innerHTML = '<p style="color:var(--text-muted);font-size:0.82rem;padding:8px;">Sem notícias no momento</p>';
+            return;
+        }
+
+        container.innerHTML = data.articles.map(article => `
+            <a href="${article.url}" target="_blank" rel="noopener" style="text-decoration:none;">
+                <div class="trend-item">
+                    <div>
+                        <strong style="font-size:0.82rem;line-height:1.3;">${article.title.substring(0, 60)}...</strong>
+                        <small>${article.source.name} · ${formatTime(new Date(article.publishedAt).getTime())}</small>
+                    </div>
+                    <i class="fas fa-arrow-up-right-from-square" style="color:var(--primary);font-size:0.75rem;flex-shrink:0;"></i>
+                </div>
+            </a>
+        `).join('');
+
+    } catch {
+        // fallback se a API falhar
+        container.innerHTML = `
+            <div class="trend-item"><div><strong>#NexusSocial</strong><small>15.2k posts</small></div></div>
+            <div class="trend-item"><div><strong>#Tecnologia</strong><small>12.3k posts</small></div></div>
+            <div class="trend-item"><div><strong>#Brasil</strong><small>9.1k posts</small></div></div>
+        `;
+    }
 }
 
 async function loadSuggestions() {

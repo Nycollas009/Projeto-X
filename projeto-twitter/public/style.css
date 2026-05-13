@@ -670,7 +670,16 @@ body.large-text { font-size: 118%; }
     border: 1px solid transparent;
 }
 .trend-item:hover { background: var(--bg-hover); border-color: var(--border-glow); }
-.trend-item strong { font-size: 0.88rem; font-weight: 600; }
+
+.trend-item strong {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    font-size: 0.82rem;
+    line-height: 1.4;
+}
+
 .trend-item small { font-size: 0.72rem; color: var(--text-secondary); display: block; margin-top: 2px; }
 
 .sidebar-footer { text-align:center; color:var(--text-muted); font-size:0.72rem; line-height:1.7; padding:8px; }
