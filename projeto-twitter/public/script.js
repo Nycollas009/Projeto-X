@@ -958,8 +958,8 @@ async function loadTrendingTopics() {
     if (!container) return;
 
     try {
-        const API_KEY = '01da66b6cd237b068a14ea339c7c0b14';
-        const res = await fetch(`https://gnews.io/api/v4/top-headlines?lang=pt&country=br&max=5&token=${API_KEY}`);
+    
+        const res = await fetch(`${API_URL}/trending`);
         const data = await res.json();
 
         if (!data.articles || data.articles.length === 0) {
@@ -982,7 +982,7 @@ async function loadTrendingTopics() {
     } catch {
         // fallback se a API falhar
         container.innerHTML = `
-            <div class="trend-item"><div><strong>#NexusSocial</strong><small>15.2k posts</small></div></div>
+            <div class="trend-item"><div><strong>#TiwittersSocial</strong><small>15.2k posts</small></div></div>
             <div class="trend-item"><div><strong>#Tecnologia</strong><small>12.3k posts</small></div></div>
             <div class="trend-item"><div><strong>#Brasil</strong><small>9.1k posts</small></div></div>
         `;

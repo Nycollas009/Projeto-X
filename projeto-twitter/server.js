@@ -119,6 +119,17 @@ app.get('/users/:id', (req, res) => {
     }
 });
 
+app.get('/trending', async (req, res) => {
+    try {
+        const fetch = (await import('node-fetch')).default;
+        const response = await fetch(`https://gnews.io/api/v4/top-headlines?lang=pt&country=br&max=5&token=01da66b6cd237b068a14ea339c7c0b14`);
+        const data = await response.json();
+        res.json(data);
+    } catch {
+        res.status(500).json({ error: 'Erro ao buscar notícias' });
+    }
+});
+
 app.patch('/users/:id', (req, res) => {
     const { id } = req.params;
     const { avatar, coverImage, bio, location, website } = req.body;
