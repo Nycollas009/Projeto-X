@@ -99,6 +99,22 @@ app.post('/login-register', async (req, res) => {
     const { password: _, ...userWithoutPassword } = user;
     res.json({ user: userWithoutPassword });
 });
+// WEATHER API
+
+app.get('/weather', async (req, res) => {
+    const { lat, lon } = req.query;
+    try {
+        const fetch = (await import('node-fetch')).default;
+        const response = await fetch(
+            `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=1249ecf88be9df5ae456788b26737302&units=metric&lang=pt_br`
+        );
+        const data = await response.json();
+        res.json(data);
+    } catch {
+        res.status(500).json({ error: 'Erro ao buscar clima' });
+    }
+});
+
 
 // =====================
 // Função de links proibidos
