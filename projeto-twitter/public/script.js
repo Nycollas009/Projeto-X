@@ -353,6 +353,8 @@ function showApp() {
     setupEmojiPicker();
     startPolling(); 
     aplicarTemaSalvo();  
+    aplicarAcessibilidadeSalva(); // ← adiciona
+    aplicarTemaSalvo();
 }
 
 
@@ -1249,6 +1251,34 @@ function updateNotificationBadge() {
         badge.style.display = 'none';
     }
 }
+
+//FUNÇÕES DE ACESSIBILIDADE
+
+function toggleHighContrast() {
+    document.body.classList.toggle('high-contrast');
+    localStorage.setItem('high-contrast', document.body.classList.contains('high-contrast'));
+    showToast('Alto contraste ' + (document.body.classList.contains('high-contrast') ? 'ativado' : 'desativado'), 'info');
+}
+
+function toggleLargeText() {
+    document.body.classList.toggle('large-text');
+    localStorage.setItem('large-text', document.body.classList.contains('large-text'));
+    showToast('Texto grande ' + (document.body.classList.contains('large-text') ? 'ativado' : 'desativado'), 'info');
+}
+
+function resetAccessibility() {
+    document.body.classList.remove('high-contrast', 'large-text');
+    localStorage.removeItem('high-contrast');
+    localStorage.removeItem('large-text');
+    showToast('Acessibilidade resetada', 'info');
+}
+
+function aplicarAcessibilidadeSalva() {
+    if (localStorage.getItem('high-contrast') === 'true') document.body.classList.add('high-contrast');
+    if (localStorage.getItem('large-text') === 'true') document.body.classList.add('large-text');
+}
+
+
 // ════════════════════════════════════════
 //  SETTINGS
 // ════════════════════════════════════════
