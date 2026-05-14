@@ -967,6 +967,33 @@ function updateFollowButtons(userId, nowFollowing) {
         }
     });
 }
+// PROFILE new
+
+function toggleAvatarInput(tipo) {
+    const urlInput  = document.getElementById('edit-avatar-url');
+    const fileInput = document.getElementById('edit-avatar-file');
+    if (tipo === 'url') {
+        urlInput.style.display  = 'block';
+        fileInput.style.display = 'none';
+    } else {
+        urlInput.style.display  = 'none';
+        fileInput.style.display = 'block';
+        fileInput.click();
+    }
+}
+
+function toggleCoverInput(tipo) {
+    const urlInput  = document.getElementById('edit-cover-url');
+    const fileInput = document.getElementById('edit-cover-file');
+    if (tipo === 'url') {
+        urlInput.style.display  = 'block';
+        fileInput.style.display = 'none';
+    } else {
+        urlInput.style.display  = 'none';
+        fileInput.style.display = 'block';
+        fileInput.click();
+    }
+}
 
 // ════════════════════════════════════════
 //  PROFILE
@@ -1027,16 +1054,33 @@ async function loadProfileData(userId) {
                     </div>
                 </div>
             </div>
-            ${isOwn ? `
-            <div class="edit-profile-section">
-                <h3><i class="fas fa-pen"></i> Editar Perfil</h3>
-                <input type="text"  id="edit-avatar-url"  placeholder="URL da foto de perfil"  value="${escapeHtml(user.avatar || '')}">
-                <input type="text"  id="edit-cover-url"   placeholder="URL da imagem de capa"   value="${escapeHtml(user.coverImage || '')}">
-                <textarea          id="edit-bio"          placeholder="Biografia" rows="3">${escapeHtml(user.bio || '')}</textarea>
-                <input type="text"  id="edit-location"    placeholder="Localização"              value="${escapeHtml(user.location || '')}">
-                <input type="text"  id="edit-website"     placeholder="Website"                  value="${escapeHtml(user.website || '')}">
-                <button class="btn-primary-sm" onclick="updateProfile()"><i class="fas fa-save"></i> Salvar Alterações</button>
-            </div>` : ''}
+           ${isOwn ? `
+<div class="edit-profile-section">
+    <h3><i class="fas fa-pen"></i> Editar Perfil</h3>
+    
+    <!-- Avatar -->
+    <label style="font-size:0.82rem;color:var(--text-secondary);font-weight:600;display:block;margin-bottom:6px;">Foto de perfil</label>
+    <div style="display:flex;gap:8px;margin-bottom:10px;">
+        <button class="btn-secondary-sm" onclick="toggleAvatarInput('url')" id="btn-avatar-url">🔗 URL</button>
+        <button class="btn-secondary-sm" onclick="toggleAvatarInput('file')" id="btn-avatar-file">📁 Dispositivo</button>
+    </div>
+    <input type="text" id="edit-avatar-url" placeholder="URL da foto de perfil" value="${escapeHtml(user.avatar || '')}">
+    <input type="file" id="edit-avatar-file" accept="image/*" style="display:none;margin-bottom:10px;">
+
+    <!-- Capa -->
+    <label style="font-size:0.82rem;color:var(--text-secondary);font-weight:600;display:block;margin-bottom:6px;">Imagem de capa</label>
+    <div style="display:flex;gap:8px;margin-bottom:10px;">
+        <button class="btn-secondary-sm" onclick="toggleCoverInput('url')" id="btn-cover-url">🔗 URL</button>
+        <button class="btn-secondary-sm" onclick="toggleCoverInput('file')" id="btn-cover-file">📁 Dispositivo</button>
+    </div>
+    <input type="text" id="edit-cover-url" placeholder="URL da imagem de capa" value="${escapeHtml(user.coverImage || '')}">
+    <input type="file" id="edit-cover-file" accept="image/*" style="display:none;margin-bottom:10px;">
+
+    <textarea id="edit-bio" placeholder="Biografia" rows="3">${escapeHtml(user.bio || '')}</textarea>
+    <input type="text" id="edit-location" placeholder="Localização" value="${escapeHtml(user.location || '')}">
+    <input type="text" id="edit-website" placeholder="Website" value="${escapeHtml(user.website || '')}">
+    <button class="btn-primary-sm" onclick="updateProfile()"><i class="fas fa-save"></i> Salvar Alterações</button>
+</div>` : ''}
             <div style="padding:20px 24px;">
                 <h3 style="font-size:1rem;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:8px;">
                     <i class="fas fa-newspaper" style="color:var(--primary);"></i> Posts
@@ -1057,11 +1101,23 @@ async function loadProfileData(userId) {
 }
 
 async function updateProfile() {
-    const avatar     = document.getElementById('edit-avatar-url')?.value;
-    const coverImage = document.getElementById('edit-cover-url')?.value;
-    const bio        = document.getElementById('edit-bio')?.value;
-    const location   = document.getElementById('edit-location')?.value;
-    const website    = document.getElementById('edit-website')?.value;
+    const bio      = document.getElementById('edit-bio')?.value;
+    const location = document.getElementById('edit-location')?.value;
+    const website  = document.getElementById('edit-website')?.value;
+
+    // Avatar
+    let avatar = document.getElementById('edit-avatar-url')?.value;
+    const avatarFile = document.getElementById('edit-avatar-file');
+    if (avatarFile?.files[0]) {
+        avatar = await fileToBase64(avatarFile.files[0]);
+    }
+
+    // Capa
+    let coverImage = document.getElementById('edit-cover-url')?.value;
+    const coverFile = document.getElementById('edit-cover-file');
+    if (coverFile?.files[0]) {
+        coverImage = await fileToBase64(coverFile.files[0]);
+    }
 
     try {
         const res = await fetch(`${API_URL}/users/${currentUser.id}`, {
@@ -1078,7 +1134,6 @@ async function updateProfile() {
         }
     } catch { showToast('Erro ao atualizar perfil', 'error'); }
 }
-
 // ════════════════════════════════════════
 //  SEARCH & EXPLORE
 // ════════════════════════════════════════
