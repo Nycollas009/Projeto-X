@@ -99,8 +99,27 @@ app.post('/login-register', async (req, res) => {
     const { password: _, ...userWithoutPassword } = user;
     res.json({ user: userWithoutPassword });
 });
-// WEATHER API
 
+//=================================
+// GIPHY API
+//=================================
+
+app.get('/giphy', async (req, res) => {
+    const { q } = req.query;
+    try {
+        const fetch = (await import('node-fetch')).default;
+        const response = await fetch(
+            `https://api.giphy.com/v1/gifs/search?api_key=G3e7vvEVjkOOI2FEEvHR2M4xSPnQy0ye&q=${encodeURIComponent(q)}&limit=12&lang=pt&rating=pg`
+        );
+        const data = await response.json();
+        res.json(data);
+    } catch {
+        res.status(500).json({ error: 'Erro ao buscar GIFs' });
+    }
+});
+// =====================
+// WEATHER API
+// =====================
 app.get('/weather', async (req, res) => {
     const { lat, lon } = req.query;
     try {

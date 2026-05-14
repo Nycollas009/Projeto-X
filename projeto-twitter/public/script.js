@@ -415,6 +415,7 @@ function showApp() {
     aplicarAcessibilidadeSalva(); // ← adiciona
     aplicarTemaSalvo();
     loadWeather();
+    setupGifPicker();
 }
 
 
@@ -494,6 +495,101 @@ async function loadProfileByUsername(username) {
         document.getElementById('view-profile')?.classList.add('active');
     } catch (e) { showToast('Erro ao carregar perfil', 'error'); }
 }
+
+//GIPHY API
+
+function setupGifPicker() {
+    const btn = document.getElementById('add-gif-btn');
+    if (!btn) return;
+
+    btn.addEventListener('click', () => {
+        const existing = document.getElementById('gif-picker-modal');
+        if (existing) { existing.remove(); return; }
+        openGifPicker();
+    });
+}
+
+function openGifPicker() {
+    const modal = document.createElement('div');
+    modal.id = 'gif-picker-modal';
+    modal.style.cssText = `
+        position:fixed; inset:0; background:rgba(0,0,0,0.8);
+        z-index:9999; display:flex; align-items:center; justify-content:center;
+        backdrop-filter:blur(8px);
+    `;
+
+    modal.innerHTML = `
+        <div style="background:var(--bg-card);border-radius:var(--radius-xl);padding:24px;width:480px;max-height:80vh;display:flex;flex-direction:column;gap:16px;border:1px solid var(--border);">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+                <h3 style="font-weight:800;">Escolher GIF</h3>
+                <span onclick="document.getElementById('gif-picker-modal').remove()" style="cursor:pointer;font-size:1.5rem;color:var(--text-secondary);">&times;</span>
+            </div>
+            <div style="display:flex;gap:10px;">
+                <input type="text" id="gif-search-input" placeholder="Buscar GIFs..." 
+                    style="flex:1;background:var(--bg-elevated);border:1px solid var(--border);color:var(--text);padding:10px 14px;border-radius:24px;font-family:var(--font-display);font-size:0.9rem;outline:none;">
+                <button onclick="searchGifs()" class="btn-primary-sm">Buscar</button>
+            </div>
+            <div id="gif-results" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;overflow-y:auto;max-height:400px;">
+                <p style="color:var(--text-muted);font-size:0.85rem;grid-column:span 3;text-align:center;padding:20px;">Digite algo para buscar GIFs</p>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+    modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+
+    document.getElementById('gif-search-input').addEventListener('keypress', e => {
+        if (e.key === 'Enter') searchGifs();
+    });
+}
+
+async function searchGifs() {
+    const input = document.getElementById('gif-search-input');
+    const term  = input?.value.trim();
+    if (!term) return;
+
+    const results = document.getElementById('gif-results');
+    results.innerHTML = '<p style="color:var(--text-muted);font-size:0.85rem;grid-column:span 3;text-align:center;padding:20px;">Buscando...</p>';
+
+    try {
+        const res  = await fetch(`${API_URL}/giphy?q=${encodeURIComponent(term)}`);
+        const data = await res.json();
+
+        if (!data.data || data.data.length === 0) {
+            results.innerHTML = '<p style="color:var(--text-muted);font-size:0.85rem;grid-column:span 3;text-align:center;padding:20px;">Nenhum GIF encontrado</p>';
+            return;
+        }
+
+        results.innerHTML = data.data.map(gif => `
+            <img src="${gif.images.fixed_height_small.url}" 
+                 style="width:100%;border-radius:var(--radius);cursor:pointer;transition:transform 0.2s;object-fit:cover;aspect-ratio:1;"
+                 onmouseover="this.style.transform='scale(1.05)'"
+                 onmouseout="this.style.transform='scale(1)'"
+                 onclick="selectGif('${gif.images.original.url}')"
+                 alt="gif">
+        `).join('');
+    } catch {
+        results.innerHTML = '<p style="color:var(--text-muted);font-size:0.85rem;grid-column:span 3;text-align:center;padding:20px;">Erro ao buscar GIFs</p>';
+    }
+}
+
+function selectGif(url) {
+    const preview = document.getElementById('image-preview');
+    const prevImg = document.getElementById('preview-img');
+
+    if (preview && prevImg) {
+        prevImg.src = url;
+        preview.style.display = 'block';
+    }
+
+    // Salva a URL do GIF para ser usada no post
+    document.getElementById('image-url-input').value = url;
+    currentImageFile = null;
+
+    document.getElementById('gif-picker-modal')?.remove();
+    showToast('GIF selecionado! 🎬', 'success');
+}
+
 // ════════════════════════════════════════
 //  POSTS
 // ════════════════════════════════════════
