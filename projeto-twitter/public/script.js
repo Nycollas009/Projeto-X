@@ -933,27 +933,53 @@ async function searchUsers() {
     if (!term) { results.innerHTML = ''; return; }
 
     try {
-        const res   = await fetch(`${API_URL}/users`);
-        const users = await res.json();
-        const found = users.filter(u => u.username.toLowerCase().includes(term) && u.id !== currentUser.id);
+        const isHashtag = term.startsWith('#');
 
-        results.innerHTML = found.length
-            ? found.map(u => `
-                <div class="user-card" onclick="viewUserProfile('${u.id}')">
-                    <img src="${escapeHtml(u.avatar || '')}" class="user-avatar" alt="">
-                    <div class="user-info">
-                        <div class="user-name">${escapeHtml(u.username)}</div>
-                        <div class="user-handle">@${escapeHtml(u.username)}</div>
-                        <div class="user-bio">${escapeHtml(u.bio || 'Sem bio')}</div>
+        if (isHashtag) {
+            // Busca posts por hashtag
+            const res   = await fetch(`${API_URL}/posts/search?q=${encodeURIComponent(term)}`);
+            const posts = await res.json();
+
+            results.innerHTML = posts.length
+                ? `
+                    <div style="margin-bottom:12px;font-size:0.85rem;color:var(--text-secondary);font-weight:600;">
+                        ${posts.length} post(s) com "${term}"
                     </div>
-                    <button class="btn-secondary-sm ${currentUser.following?.includes(u.id) ? 'following' : ''}"
-                        onclick="event.stopPropagation();toggleFollow('${u.id}')">
-                        ${currentUser.following?.includes(u.id) ? 'Seguindo' : 'Seguir'}
-                    </button>
-                </div>`).join('')
-            : `<div class="empty-state" style="padding:32px 0;"><i class="fas fa-search"></i><p>Nenhum usuário encontrado</p></div>`;
+                    ${posts.map(createPostElement).join('')}`
+                : `<div class="empty-state" style="padding:32px 0;">
+                        <i class="fas fa-hashtag"></i>
+                        <p>Nenhum post com "${term}"</p>
+                   </div>`;
+        } else {
+            // Busca usuários por nome
+            const res   = await fetch(`${API_URL}/users`);
+            const users = await res.json();
+            const found = users.filter(u => 
+                u.username.toLowerCase().includes(term) && u.id !== currentUser.id
+            );
+
+            results.innerHTML = found.length
+                ? found.map(u => `
+                    <div class="user-card" onclick="viewUserProfile('${u.id}')">
+                        <img src="${escapeHtml(u.avatar || '')}" class="user-avatar" alt="">
+                        <div class="user-info">
+                            <div class="user-name">${escapeHtml(u.username)}</div>
+                            <div class="user-handle">@${escapeHtml(u.username)}</div>
+                            <div class="user-bio">${escapeHtml(u.bio || 'Sem bio')}</div>
+                        </div>
+                        <button class="btn-secondary-sm ${currentUser.following?.includes(u.id) ? 'following' : ''}"
+                            onclick="event.stopPropagation();toggleFollow('${u.id}')">
+                            ${currentUser.following?.includes(u.id) ? 'Seguindo' : 'Seguir'}
+                        </button>
+                    </div>`).join('')
+                : `<div class="empty-state" style="padding:32px 0;">
+                        <i class="fas fa-search"></i>
+                        <p>Nenhum usuário encontrado</p>
+                   </div>`;
+        }
     } catch { /* silent */ }
 }
+
 
 async function loadExplore() {
     await loadTrendingTopics();

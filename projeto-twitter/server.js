@@ -138,6 +138,20 @@ app.get('/trending', async (req, res) => {
     }
 });
 
+app.get('/posts/search', (req, res) => {
+    const { q } = req.query;
+    const db = readDB();
+    
+    if (!q) return res.json([]);
+    
+    const termo = q.toLowerCase();
+    const posts = db.posts.filter(p => 
+        p.content && p.content.toLowerCase().includes(termo)
+    );
+    
+    res.json(posts.sort((a, b) => b.timestamp - a.timestamp));
+});
+
 app.patch('/users/:id', (req, res) => {
     const { id } = req.params;
     const { avatar, coverImage, bio, location, website } = req.body;
@@ -260,14 +274,15 @@ const palavrasProibidas = ['porra', 'porr4', 'p0rra', 'porras', 'poha', 'p0ha', 
     'retardado', 'ret4rdado', 'retardada',
     'mongol', 'm0ngol',
     'lixo', 'l1xo',
-    'inutil', 'inútil', 'inuteis',
+    'bucet4', 'buc3t4', 'bucet@',
     'canalha', 'can4lha', 'canalhas',
     'lazarento', 'laz4rento', 'lazarenta',
     'maldito', 'mald1to', 'maldita',
     'assassino', 'ass4ssino',
     'prostituto', 'prost1tuto','prostitutos',
     'bosta', 'b0sta', 'bostas',
-    'meretriz', 'mer3triz', 'meretrizes', 'furry', 'furries'];
+    'meretriz', 'mer3triz', 'meretrizes', 'furry', 'furries','femboy', 'femboys', 'seu preto', 'neguinho', 'sua preta', 'neguinha', 'seu viado', 'sua viada', 'seu vagabundo', 'sua vagabunda'
+];
 
 function contemPalavrasProibidas(texto) {
     const textoLower = texto.toLowerCase();
