@@ -477,7 +477,10 @@ async function createPost() {
             loadPosts();
         } else if (res.status === 400) {
             showToast('Post contém conteúdo inapropriado!', 'error');
-        } else {
+        } else if  (res.status === 403) {
+            showToast('Links não são permitidos nos posts! 🔗', 'error');
+}
+         else {
             showToast('Erro ao publicar post', 'error');
         }
     } catch { showToast('Erro ao publicar post', 'error'); }
@@ -716,7 +719,9 @@ async function addComment(postId) {
             loadPosts(); 
         } else if (res.status === 400) {
             showToast('Comentário contém conteúdo inapropriado! ⚠️', 'error');
-        }
+        } else if (res.status === 403) {
+    showToast('Links não são permitidos nos comentários! 🔗', 'error');
+}
     } catch { /* silent */ }
 }
 
@@ -1163,7 +1168,9 @@ async function sendMessage() {
             openConversation(currentConversation); 
         } else if (res.status === 400) {
             showToast('Mensagem contém conteúdo inapropriado! ⚠️', 'error');
-        }
+        } else if (res.status === 403) {
+    showToast('Links não são permitidos nas mensagens! 🔗', 'error');
+}
     } catch { /* silent */ }
 }
 
@@ -1251,6 +1258,9 @@ function updateNotificationBadge() {
         badge.style.display = 'none';
     }
 }
+
+
+
 
 //FUNÇÕES DE ACESSIBILIDADE
 

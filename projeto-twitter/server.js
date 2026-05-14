@@ -100,6 +100,14 @@ app.post('/login-register', async (req, res) => {
     res.json({ user: userWithoutPassword });
 });
 
+// =====================
+// Função de links proibidos
+// =====================
+
+function contemLink(texto) {
+    const urlRegex = /(https?:\/\/[^\s]+)|(www\.[^\s]+)|([^\s]+\.(com|net|org|br|io|co|gg|tv|me|app|dev)[^\s]*)/gi;
+    return urlRegex.test(texto);
+}
 
 // ========== USUÁRIOS ==========
 app.get('/users', (req, res) => {
@@ -286,6 +294,10 @@ app.post('/posts', (req, res) => {
         return res.status(400).json({ error: 'Post contém conteúdo inapropriado!' });
     }
 
+    if (contemLink(content)) {
+    return res.status(403).json({ error: 'Posts com links não são permitidos!' });
+}
+
     const db = readDB();
     const newPost = {
         id: Date.now().toString(),
@@ -467,7 +479,9 @@ app.post('/posts/comment', (req, res) => {
     if (contemPalavrasProibidas(content)) {
         return res.status(400).json({ error: 'Comentário contém conteúdo inapropriado!' });
     }
-    
+    if (contemLink(content)) {
+    return res.status(403).json({ error: 'Posts com links não são permitidos!' });
+}
     const db = readDB();
     const post = db.posts.find(p => p.id === postId);
     
@@ -668,6 +682,9 @@ app.post('/messages', (req, res) => {
     if (contemPalavrasProibidas(content)) {
         return res.status(400).json({ error: 'Mensagem contém conteúdo inapropriado!' });
     }
+    if (contemLink(content)) {
+    return res.status(403).json({ error: 'Posts com links não são permitidos!' });
+}
 
     const db = readDB();
     const message = {
