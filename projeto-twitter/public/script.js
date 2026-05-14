@@ -142,6 +142,65 @@ function handleImageError(imgElement, username = '') {
         imgElement.onerror = null;
     }
 }
+// WHEATER API
+
+async function loadWeather() {
+    const container = document.getElementById('weather-info');
+    if (!container) return;
+
+    if (!navigator.geolocation) {
+        container.innerHTML = '<p style="color:var(--text-muted);font-size:0.82rem;">Geolocalização não suportada</p>';
+        return;
+    }
+
+    navigator.geolocation.getCurrentPosition(async (pos) => {
+        try {
+            const { latitude, longitude } = pos.coords;
+            const res  = await fetch(`${API_URL}/weather?lat=${latitude}&lon=${longitude}`);
+            const data = await res.json();
+
+            const icone     = `https://openweathermap.org/img/wn/${data.weather[0].icon}@2x.png`;
+            const temp      = Math.round(data.main.temp);
+            const sensacao  = Math.round(data.main.feels_like);
+            const descricao = data.weather[0].description;
+            const cidade    = data.name;
+            const umidade   = data.main.humidity;
+            const vento     = Math.round(data.wind.speed * 3.6); // m/s para km/h
+
+            container.innerHTML = `
+                <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+                    <img src="${icone}" style="width:56px;height:56px;" alt="clima">
+                    <div>
+                        <div style="font-size:1.8rem;font-weight:800;font-family:var(--font-mono);">${temp}°C</div>
+                        <div style="font-size:0.8rem;color:var(--text-secondary);text-transform:capitalize;">${descricao}</div>
+                    </div>
+                </div>
+                <div style="font-size:0.85rem;font-weight:600;margin-bottom:10px;">
+                    <i class="fas fa-map-marker-alt" style="color:var(--primary);"></i> ${cidade}
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                    <div class="stat-card">
+                        <span class="stat-value" style="font-size:1rem;">${sensacao}°</span>
+                        <span class="stat-label">Sensação</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-value" style="font-size:1rem;">${umidade}%</span>
+                        <span class="stat-label">Umidade</span>
+                    </div>
+                    <div class="stat-card" style="grid-column:span 2;">
+                        <span class="stat-value" style="font-size:1rem;">${vento} km/h</span>
+                        <span class="stat-label">Vento</span>
+                    </div>
+                </div>
+            `;
+        } catch {
+            container.innerHTML = '<p style="color:var(--text-muted);font-size:0.82rem;">Erro ao carregar clima</p>';
+        }
+    }, () => {
+        container.innerHTML = '<p style="color:var(--text-muted);font-size:0.82rem;">Permita acesso à localização</p>';
+    });
+}
+
 
 // ════════════════════════════════════════
 //  macOS DOCK TOGGLE
@@ -355,6 +414,7 @@ function showApp() {
     aplicarTemaSalvo();  
     aplicarAcessibilidadeSalva(); // ← adiciona
     aplicarTemaSalvo();
+    loadWeather();
 }
 
 
