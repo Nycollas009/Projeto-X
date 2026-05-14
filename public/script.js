@@ -298,6 +298,7 @@ function showApp() {
     loadSuggestions();
     updateUserStats();
     setupEmojiPicker();
+<<<<<<< HEAD
     startPolling(); 
     aplicarTemaSalvo();  
     aplicarAcessibilidadeSalva(); // ← adiciona
@@ -359,6 +360,11 @@ function handleImageError(imgElement, username = '') {
     }
 }
 
+=======
+      startPolling(); 
+}
+
+>>>>>>> 737f3b530851ed57ac33ececefbfb66ada50bead
 
 function updateUI() {
     // Sidebar avatar - agora com iniciais se não tiver foto
@@ -558,10 +564,20 @@ function createPostElement(post) {
                 <div class="post-content">${escapeHtml(post.content)}</div>
                 ${post.imageUrl ? `<img src="${post.imageUrl}" class="post-image" onclick="openImageModal('${escapeHtml(post.imageUrl)}')" alt="imagem do post">` : ''}
                 <div class="post-actions">
+<<<<<<< HEAD
+=======
+
+
+>>>>>>> 737f3b530851ed57ac33ececefbfb66ada50bead
                    <div class="post-action like-action ${isLiked ? 'liked' : ''}" onclick="likePost('${post.id}')">
                         <i class="fas fa-heart"></i>
                         <span class="like-count">${post.likes?.length || 0}</span>
                     </div>
+<<<<<<< HEAD
+=======
+
+
+>>>>>>> 737f3b530851ed57ac33ececefbfb66ada50bead
                    <div class="post-action" onclick="toggleComments(&quot;${post.id}&quot;)">
                         <i class="fas fa-comment"></i>
                         <span>${post.comments?.length || 0}</span>
@@ -1179,7 +1195,15 @@ async function likeMessage(msgId) {
 }
 
 // ════════════════════════════════════════
+<<<<<<< HEAD
 //  NOTIFICATIONS  
+=======
+//  NOTIFICATIONS  ARUMMMAR
+
+
+
+
+>>>>>>> 737f3b530851ed57ac33ececefbfb66ada50bead
 // ════════════════════════════════════════
 async function loadNotifications() {
     try {
@@ -1359,13 +1383,20 @@ ws.onclose = (e) => {
 };
     } catch { /* silent */ }
 }
+// Adicione depois da função connectWebSocket()
+// ════════════════════════════════════════
+//  WEBSOCKET 
+// ════════════════════════════════════════
 
+<<<<<<< HEAD
 
 
 // ════════════════════════════════════════
 //  WEBSOCKET - VERSÃO CORRIGIDA
 // ════════════════════════════════════════
 
+=======
+>>>>>>> 737f3b530851ed57ac33ececefbfb66ada50bead
 function handleWebSocketMessage(event) {
     try {
         // 🔧 CORREÇÃO: Verifica se event já é o objeto ou se precisa fazer parse

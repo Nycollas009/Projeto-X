@@ -5,8 +5,17 @@ const http = require('http');
 const WebSocket = require('ws');
 const path = require('path');
 
+<<<<<<< HEAD
 const app = express();
 const port = 3000;
+=======
+const app    = express();
+const server = http.createServer(app); 
+const port   = process.env.PORT || 3000;
+server.listen(port, '0.0.0.0', () => {
+    console.log(`Servidor rodando na porta ${port}`);
+});
+>>>>>>> 737f3b530851ed57ac33ececefbfb66ada50bead
 
 app.use(cors());
 app.use(express.json());
@@ -28,7 +37,6 @@ if (!fs.existsSync(DB_FILE)) {
 const readDB = () => JSON.parse(fs.readFileSync(DB_FILE, 'utf-8'));
 const writeDB = (data) => fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2));
 
-const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
 
 let connectedClients = [];
@@ -54,6 +62,7 @@ function broadcastUpdate(type, data) {
 const bcrypt = require('bcrypt');
 const SALT_ROUNDS = 10;
 
+<<<<<<< HEAD
 //========== CENSURA ===========
 
 const palavrasProibidas = ['porra', 'porr4', 'p0rra', 'porras', 'poha', 'p0ha', 'poh4', 'pohas',
@@ -111,6 +120,10 @@ function contemPalavrasProibidas(texto) {
 
 
 
+=======
+const bcrypt = require('bcrypt');
+const SALT_ROUNDS = 10;
+>>>>>>> 737f3b530851ed57ac33ececefbfb66ada50bead
 
 // == AUTENTICAÇÃO ==
 app.post('/login-register', async (req, res) => {
@@ -502,6 +515,7 @@ app.post('/posts/comment', (req, res) => {
     }
 });
 
+<<<<<<< HEAD
 // ========== DELETE COMMENT ==========
 
 app.delete('/posts/:postId/comments/:commentId', (req, res) => {
@@ -525,6 +539,8 @@ app.delete('/posts/:postId/comments/:commentId', (req, res) => {
     res.json({ success: true });
 });
 
+=======
+>>>>>>> 737f3b530851ed57ac33ececefbfb66ada50bead
 // =ENDPOINT RETWEET
 app.post('/posts/retweet', (req, res) => {
     const { postId, userId } = req.body;
