@@ -254,6 +254,45 @@ body.large-text { font-size: 118%; }
     box-shadow: 0 0 0 4px rgba(102,126,234,0.12);
 }
 
+.password-input-wrapper {
+    position: relative;
+    width: 100%;
+}
+
+.password-input-wrapper input {
+    width: 100%;
+    padding: 15px 45px 15px 20px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: var(--radius);
+    font-size: 0.95rem;
+    font-family: var(--font-display);
+    transition: all 0.25s;
+    outline: none;
+}
+
+.password-input-wrapper input:focus {
+    border-color: var(--primary);
+    background: rgba(102,126,234,0.07);
+    box-shadow: 0 0 0 4px rgba(102,126,234,0.12);
+}
+
+.toggle-password {
+    position: absolute;
+    right: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    cursor: pointer;
+    color: var(--text-muted);
+    transition: color 0.2s;
+    font-size: 0.95rem;
+}
+
+.toggle-password:hover {
+    color: var(--primary);
+}
+
 .btn-primary {
     width: 100%;
     padding: 15px;
