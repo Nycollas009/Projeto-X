@@ -1,7 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
 
 /* ============================================================
-   NEXUS SOCIAL — PREMIUM DARK DESIGN SYSTEM
+   Tiwitter SOCIAL — DESING DARK
    ============================================================ */
 
 :root {
@@ -11,7 +11,7 @@
     --secondary:      #764ba2;
     --accent:         #f472b6;
     --accent-cyan:    #22d3ee;
-
+    
     --bg-void:        #05050a;
     --bg-dark:        #0a0a0f;
     --bg-card:        #0f0f1a;
@@ -53,12 +53,15 @@
 *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
 
 body {
+  
     background: var(--bg-void);
     color: var(--text);
     font-family: var(--font-display);
     overflow-x: hidden;
     min-height: 100vh;
 }
+
+
 
 /* Noise texture overlay for depth */
 body::before {
@@ -84,6 +87,9 @@ body::after {
     z-index: 0;
 }
 
+
+
+
 /* Scrollbar */
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
@@ -92,7 +98,7 @@ body::after {
 
 /* ── ACCESSIBILITY ── */
 body.high-contrast { --bg-dark:#000; --bg-card:#000; --text:#fff; --text-secondary:#ff0; --primary:#ff0; --border:#fff; }
-body.large-text { font-size: 118%; }
+body.large-text { font-size: 150%; }
 
 /* ============================================================
    TOAST
@@ -189,10 +195,10 @@ body.large-text { font-size: 118%; }
 }
 
 .login-logo-wrapper {
-    width: 80px;
-    height: 80px;
+    width: 50%;
+    height: auto;
     border-radius: 50%;
-    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    background: rgb(23, 52, 105); /*parte de dentro da logo de login */
     display: flex;
     align-items: center;
     justify-content: center;
@@ -232,6 +238,31 @@ body.large-text { font-size: 118%; }
     display: flex;
     flex-direction: column;
     gap: 14px;
+}
+
+.password-input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.password-input-wrapper input {
+    width: 100%;
+    padding-right: 40px; 
+    box-sizing: border-box;
+}
+
+.password-input-wrapper .toggle-password {
+    position: absolute;
+    right: 15px;
+    cursor: pointer;
+    color: var(--text-muted);
+    font-size: 1.2rem;
+    transition: color 0.2s;
+}
+
+.password-input-wrapper .toggle-password:hover {
+    color: var(--primary);
 }
 
 .login-form input {
@@ -315,20 +346,33 @@ body.large-text { font-size: 118%; }
 .sidebar-nav.expanded {
     width: var(--sidebar-width);
     border-radius: var(--radius-xl);
-    align-items: flex-start;
-    padding: 24px 16px;
+    align-items: center;
+    padding: 5px 3px;
 }
 
 .nav-logo {
-    display: center;
+    
     align-items: center;
-    justify-content: flex-start;
+    justify-content: center;
     gap: 12px;
     padding: 10px;
     margin-bottom: 12px;
-    width: 100%;
-    overflow: hidden;
+    width: 70%;
     white-space: nowrap;
+}
+
+
+/* Logo retraída */
+.nav-logo-img {
+    width: auto;
+    height: 40px;
+    transition: all 0.2s;
+}
+
+/* Logo expandida */
+.sidebar-nav.expanded .nav-logo-img {
+    width: 55;
+    height: 56px;
 }
 
 .nav-logo i {
@@ -1335,4 +1379,37 @@ emoji-picker.active { display: block; animation: postIn 0.2s ease; }
     .nav-item.active::after { top: auto; bottom: -6px; left: 50%; }
     .main-content { margin-left: 0; margin-right: 0; margin-bottom: 76px; padding: 16px; }
     .sidebar-nav.expanded { width: 100%; }
+}
+
+
+    /* Tema Escuro */
+body.tema-escuro {
+    --primary:        #667eea;
+    --secondary:      #764ba2;
+    --bg-void:        #000000;
+    --bg-dark:        #050505;
+    --bg-card:        #0a0a0a;
+    --bg-elevated:    #0f0f0f;
+    --bg-hover:       #141414;
+    --text:           #ffffff;
+    --text-secondary: #888888;
+    --border:         rgba(255,255,255,0.05);
+}
+
+/* Tema Claro */
+body.tema-claro {
+    --primary:        #5a67d8;
+    --secondary:      #764ba2;
+    --bg-void:        #f0f2f5;
+    --bg-dark:        #e4e6eb;
+    --bg-card:        #ffffff;
+    --bg-elevated:    #f7f8fa;
+    --bg-hover:       #e4e6eb;
+    --bg-glass:       rgba(255,255,255,0.85);
+    --text:           #1a1a2e;
+    --text-secondary: #65676b;
+    --text-muted:     #8a8d91;
+    --border:         rgba(0,0,0,0.1);
+    --shadow:         0 8px 32px rgba(0,0,0,0.1);
+    --shadow-glow:    0 0 40px rgba(90,103,216,0.1);
 }

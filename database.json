@@ -5,11 +5,16 @@
       "username": "TESTE1",
       "password": "$2b$10$r6pca0Z6HSNldTHRbkg3B.ngGiLlt1NUY8MkuTAnTJG5zGR3vG4aO",
       "displayName": "TESTE1",
-      "avatar": "https://api.dicebear.com/7.x/identicon/svg?seed=TESTE1",
+      "avatar": "https://cdn-front.freepik.com/favicons/favicon-96x96.png?w=96&amp;v=2",
       "bio": "Tá dificil\n",
-      "following": [],
-      "followers": [],
-      "coverImage": "https://api.dicebear.com/7.x/identicon/svg?seed=TESTE1",
+      "following": [
+        "1776202605384",
+        "1776202820810"
+      ],
+      "followers": [
+        "1776202820810"
+      ],
+      "coverImage": "https://wallpapers.com/images/featured/imagens-incriveis-k287z98ruunquo28.jpg",
       "location": "",
       "website": ""
     },
@@ -21,12 +26,43 @@
       "avatar": "https://cdn-front.freepik.com/favicons/favicon-96x96.png?w=96&amp;v=2",
       "bio": "biografia",
       "following": [],
-      "followers": []
+      "followers": [
+        "1776202820810"
+      ]
+    },
+    {
+      "id": "1776202605384",
+      "username": "Adm",
+      "password": "$2b$10$t3LfPh1rMGAVOdkQaQ4NO.sOdD63vsJUk9UnxHXMGA3rfcPcnRMUi",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Adm",
+      "coverImage": "https://api.dicebear.com/7.x/avataaars/svg?seed=Adm",
+      "bio": "✨ Bem-vindo ao Tiwitter Social! Conecte-se com o mundo.",
+      "location": "🌍 Planeta Terra",
+      "website": "",
+      "joinDate": "2026-04-14T21:36:45.384Z",
+      "following": [],
+      "followers": [
+        "1776202820810",
+        "1774480961802"
+      ],
+      "likedPosts": []
+    },
+    {
+      "id": "1776205894898",
+      "username": "adm",
+      "password": "$2b$10$4a9JQ.vIvcIe/V3u87k3TO6qDK6tMeAC9V02WugF95MpQdziv77Si",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=adm",
+      "coverImage": "https://picsum.photos/1200/300?random=1776205894898",
+      "bio": "✨ Bem-vindo ao Tiwitter Social! Conecte-se com o mundo.",
+      "location": "🌍 Planeta Terra",
+      "website": "",
+      "joinDate": "2026-04-14T22:31:34.898Z",
+      "following": [],
+      "followers": [],
+      "likedPosts": []
     }
   ],
-  "posts": [
- 
-  ],
+  "posts": [],
   "messages": [],
   "trends": [
     {
@@ -40,6 +76,426 @@
     {
       "hashtag": "#JavaScript",
       "count": "50k"
+    }
+  ],
+  "notifications": [
+    {
+      "id": "1776982546608",
+      "userId": "1776202605384",
+      "type": "like",
+      "fromUser": {
+        "id": "1774481377869",
+        "username": "teste1",
+        "avatar": "https://cdn-front.freepik.com/favicons/favicon-96x96.png?w=96&amp;v=2"
+      },
+      "content": "teste1 curtiu seu post",
+      "postId": "1776894965426",
+      "read": false,
+      "timestamp": 1776982546608
+    },
+    {
+      "id": "1776982549852",
+      "userId": "1776202605384",
+      "type": "like",
+      "fromUser": {
+        "id": "1774481377869",
+        "username": "teste1",
+        "avatar": "https://cdn-front.freepik.com/favicons/favicon-96x96.png?w=96&amp;v=2"
+      },
+      "content": "teste1 curtiu seu post",
+      "postId": "1776894965426",
+      "read": false,
+      "timestamp": 1776982549852
+    },
+    {
+      "id": "1776982771456",
+      "userId": "1774481377869",
+      "type": "like",
+      "fromUser": {
+        "id": "1776202605384",
+        "username": "Adm",
+        "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Adm"
+      },
+      "content": "Adm curtiu seu post",
+      "postId": "1776982766432",
+      "read": true,
+      "timestamp": 1776982771456
+    },
+    {
+      "id": "1777063939625",
+      "userId": "1774481377869",
+      "type": "like",
+      "fromUser": {
+        "id": "1776202605384",
+        "username": "Adm",
+        "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Adm"
+      },
+      "content": "Adm curtiu seu post",
+      "postId": "1776982766432",
+      "read": true,
+      "timestamp": 1777063939625
+    },
+    {
+      "id": "1777064542585",
+      "userId": "1774481377869",
+      "type": "retweet",
+      "fromUser": {
+        "id": "1776202605384",
+        "username": "Adm",
+        "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Adm"
+      },
+      "content": "Adm retweetou seu post",
+      "postId": "1776982766432",
+      "read": true,
+      "timestamp": 1777064542585
+    },
+    {
+      "id": "1777064562733",
+      "userId": "1774481377869",
+      "type": "comment",
+      "fromUser": {
+        "id": "1776202605384",
+        "username": "Adm",
+        "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Adm"
+      },
+      "content": "Adm comentou no seu post: \"comentário...\"",
+      "postId": "1776982766432",
+      "read": true,
+      "timestamp": 1777064562733
+    },
+    {
+      "id": "1777319808630",
+      "userId": "1774481377869",
+      "type": "like",
+      "fromUser": {
+        "id": "1776202605384",
+        "username": "Adm",
+        "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Adm"
+      },
+      "content": "Adm curtiu seu post",
+      "postId": "1776982766432",
+      "read": true,
+      "timestamp": 1777319808630
+    },
+    {
+      "id": "1777319810995",
+      "userId": "1774481377869",
+      "type": "retweet",
+      "fromUser": {
+        "id": "1776202605384",
+        "username": "Adm",
+        "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Adm"
+      },
+      "content": "Adm retweetou seu post",
+      "postId": "1776982766432",
+      "read": true,
+      "timestamp": 1777319810995
+    },
+    {
+      "id": "1777408940129",
+      "userId": "1774481377869",
+      "type": "like",
+      "fromUser": {
+        "id": "1774480961802",
+        "username": "TESTE1",
+        "avatar": "https://api.dicebear.com/7.x/identicon/svg?seed=TESTE1"
+      },
+      "content": "TESTE1 curtiu seu post",
+      "postId": "1776982766432",
+      "read": true,
+      "timestamp": 1777408940129
+    },
+    {
+      "id": "1777408942957",
+      "userId": "1774481377869",
+      "type": "like",
+      "fromUser": {
+        "id": "1774480961802",
+        "username": "TESTE1",
+        "avatar": "https://api.dicebear.com/7.x/identicon/svg?seed=TESTE1"
+      },
+      "content": "TESTE1 curtiu seu post",
+      "postId": "1776982766432",
+      "read": true,
+      "timestamp": 1777408942957
+    },
+    {
+      "id": "1777408987919",
+      "userId": "1774480961802",
+      "type": "like",
+      "fromUser": {
+        "id": "1774481377869",
+        "username": "teste1",
+        "avatar": "https://cdn-front.freepik.com/favicons/favicon-96x96.png?w=96&amp;v=2"
+      },
+      "content": "teste1 curtiu seu post",
+      "postId": "1777408984315",
+      "read": true,
+      "timestamp": 1777408987919
+    },
+    {
+      "id": "1777409006797",
+      "userId": "1774480961802",
+      "type": "comment",
+      "fromUser": {
+        "id": "1774481377869",
+        "username": "teste1",
+        "avatar": "https://cdn-front.freepik.com/favicons/favicon-96x96.png?w=96&amp;v=2"
+      },
+      "content": "teste1 comentou no seu post: \"comentariolas...\"",
+      "postId": "1777408984315",
+      "read": true,
+      "timestamp": 1777409006797
+    },
+    {
+      "id": "1777409398291",
+      "userId": "1774480961802",
+      "type": "like",
+      "fromUser": {
+        "id": "1774481377869",
+        "username": "teste1",
+        "avatar": "https://cdn-front.freepik.com/favicons/favicon-96x96.png?w=96&amp;v=2"
+      },
+      "content": "teste1 curtiu seu post",
+      "postId": "1777408984315",
+      "read": true,
+      "timestamp": 1777409398291
+    },
+    {
+      "id": "1777410125695",
+      "userId": "1774480961802",
+      "type": "like",
+      "fromUser": {
+        "id": "1774481377869",
+        "username": "teste1",
+        "avatar": "https://cdn-front.freepik.com/favicons/favicon-96x96.png?w=96&amp;v=2"
+      },
+      "content": "teste1 curtiu seu post",
+      "postId": "1777408984315",
+      "read": true,
+      "timestamp": 1777410125695
+    },
+    {
+      "id": "1777410200030",
+      "userId": "1774481377869",
+      "type": "like",
+      "fromUser": {
+        "id": "1774480961802",
+        "username": "TESTE1",
+        "avatar": "https://api.dicebear.com/7.x/identicon/svg?seed=TESTE1"
+      },
+      "content": "TESTE1 curtiu seu post",
+      "postId": "1776982766432",
+      "read": true,
+      "timestamp": 1777410200030
+    },
+    {
+      "id": "1777410294258",
+      "userId": "1774481377869",
+      "type": "like",
+      "fromUser": {
+        "id": "1774480961802",
+        "username": "TESTE1",
+        "avatar": "https://api.dicebear.com/7.x/identicon/svg?seed=TESTE1"
+      },
+      "content": "TESTE1 curtiu seu post",
+      "postId": "1776982766432",
+      "read": true,
+      "timestamp": 1777410294258
+    },
+    {
+      "id": "1777410307928",
+      "userId": "1774480961802",
+      "type": "like",
+      "fromUser": {
+        "id": "1774481377869",
+        "username": "teste1",
+        "avatar": "https://cdn-front.freepik.com/favicons/favicon-96x96.png?w=96&amp;v=2"
+      },
+      "content": "teste1 curtiu seu post",
+      "postId": "1777408984315",
+      "read": true,
+      "timestamp": 1777410307928
+    },
+    {
+      "id": "1777411962739",
+      "userId": "1774481377869",
+      "type": "like",
+      "fromUser": {
+        "id": "1774480961802",
+        "username": "TESTE1",
+        "avatar": "https://api.dicebear.com/7.x/identicon/svg?seed=TESTE1"
+      },
+      "content": "TESTE1 curtiu seu post",
+      "postId": "1776982766432",
+      "read": true,
+      "timestamp": 1777411962739
+    },
+    {
+      "id": "1777411983006",
+      "userId": "1774480961802",
+      "type": "like",
+      "fromUser": {
+        "id": "1774481377869",
+        "username": "teste1",
+        "avatar": "https://cdn-front.freepik.com/favicons/favicon-96x96.png?w=96&amp;v=2"
+      },
+      "content": "teste1 curtiu seu post",
+      "postId": "1777408984315",
+      "read": true,
+      "timestamp": 1777411983006
+    },
+    {
+      "id": "1777412260119",
+      "userId": "1774481377869",
+      "type": "like",
+      "fromUser": {
+        "id": "1774480961802",
+        "username": "TESTE1",
+        "avatar": "https://api.dicebear.com/7.x/identicon/svg?seed=TESTE1"
+      },
+      "content": "TESTE1 curtiu seu post",
+      "postId": "1776982766432",
+      "read": true,
+      "timestamp": 1777412260119
+    },
+    {
+      "id": "1777419861963",
+      "userId": "1774480961802",
+      "type": "follow",
+      "fromUser": {
+        "id": "1774481377869",
+        "username": "teste1",
+        "avatar": "https://cdn-front.freepik.com/favicons/favicon-96x96.png?w=96&amp;v=2"
+      },
+      "content": "teste1 começou a seguir você",
+      "read": true,
+      "timestamp": 1777419861963
+    },
+    {
+      "id": "1777428393811",
+      "userId": "1774481377869",
+      "type": "follow",
+      "fromUser": {
+        "id": "1774480961802",
+        "username": "TESTE1",
+        "avatar": "https://i.pinimg.com/236x/22/a5/75/22a5750f86f5bde10e03b89459125bef.jpg"
+      },
+      "content": "TESTE1 começou a seguir você",
+      "read": false,
+      "timestamp": 1777428393811
+    },
+    {
+      "id": "1777511426867",
+      "userId": "1774481377869",
+      "type": "comment",
+      "fromUser": {
+        "id": "1774480961802",
+        "username": "TESTE1",
+        "avatar": "https://i.pinimg.com/236x/22/a5/75/22a5750f86f5bde10e03b89459125bef.jpg"
+      },
+      "content": "TESTE1 comentou no seu post: \"porra...\"",
+      "postId": "1776982766432",
+      "read": false,
+      "timestamp": 1777511426867
+    },
+    {
+      "id": "1777511478159",
+      "userId": "1774481377869",
+      "type": "comment",
+      "fromUser": {
+        "id": "1774480961802",
+        "username": "TESTE1",
+        "avatar": "https://i.pinimg.com/236x/22/a5/75/22a5750f86f5bde10e03b89459125bef.jpg"
+      },
+      "content": "TESTE1 comentou no seu post: \"caralho...\"",
+      "postId": "1777511467167",
+      "read": false,
+      "timestamp": 1777511478159
+    },
+    {
+      "id": "1777511605794",
+      "userId": "1774481377869",
+      "type": "comment",
+      "fromUser": {
+        "id": "1774480961802",
+        "username": "TESTE1",
+        "avatar": "https://i.pinimg.com/236x/22/a5/75/22a5750f86f5bde10e03b89459125bef.jpg"
+      },
+      "content": "TESTE1 comentou no seu post: \"cacete...\"",
+      "postId": "1777511467167",
+      "read": false,
+      "timestamp": 1777511605794
+    },
+    {
+      "id": "1777511610080",
+      "userId": "1774481377869",
+      "type": "comment",
+      "fromUser": {
+        "id": "1774480961802",
+        "username": "TESTE1",
+        "avatar": "https://i.pinimg.com/236x/22/a5/75/22a5750f86f5bde10e03b89459125bef.jpg"
+      },
+      "content": "TESTE1 comentou no seu post: \"porra...\"",
+      "postId": "1777511467167",
+      "read": false,
+      "timestamp": 1777511610080
+    },
+    {
+      "id": "1777511644779",
+      "userId": "1774481377869",
+      "type": "comment",
+      "fromUser": {
+        "id": "1774480961802",
+        "username": "TESTE1",
+        "avatar": "https://i.pinimg.com/236x/22/a5/75/22a5750f86f5bde10e03b89459125bef.jpg"
+      },
+      "content": "TESTE1 comentou no seu post: \"porra...\"",
+      "postId": "1777511462224",
+      "read": false,
+      "timestamp": 1777511644779
+    },
+    {
+      "id": "1777511649260",
+      "userId": "1774481377869",
+      "type": "comment",
+      "fromUser": {
+        "id": "1774480961802",
+        "username": "TESTE1",
+        "avatar": "https://i.pinimg.com/236x/22/a5/75/22a5750f86f5bde10e03b89459125bef.jpg"
+      },
+      "content": "TESTE1 comentou no seu post: \"caralho...\"",
+      "postId": "1777511462224",
+      "read": false,
+      "timestamp": 1777511649261
+    },
+    {
+      "id": "1777511654608",
+      "userId": "1774481377869",
+      "type": "comment",
+      "fromUser": {
+        "id": "1774480961802",
+        "username": "TESTE1",
+        "avatar": "https://i.pinimg.com/236x/22/a5/75/22a5750f86f5bde10e03b89459125bef.jpg"
+      },
+      "content": "TESTE1 comentou no seu post: \"asshole...\"",
+      "postId": "1777511462224",
+      "read": false,
+      "timestamp": 1777511654609
+    },
+    {
+      "id": "1778618331643",
+      "userId": "1774480961802",
+      "type": "comment",
+      "fromUser": {
+        "id": "1774481377869",
+        "username": "teste1",
+        "avatar": "https://cdn-front.freepik.com/favicons/favicon-96x96.png?w=96&amp;v=2"
+      },
+      "content": "teste1 comentou no seu post: \"comments...\"",
+      "postId": "1778617705124",
+      "read": false,
+      "timestamp": 1778618331643
     }
   ]
 }

@@ -1,9 +1,9 @@
 
-//  NEXUS SOCIAL — script.js (v2 — fixed)
+//  Tiwitter SOCIAL — script.js (v2 — fixed)
 
-console.log('🚀 Nexus Social v2 — Carregando...');
+console.log('🚀 Tiwitter Social v2 — Carregando...');
 
-const API_URL = 'https://meu-twitter-projeto-x.onrender.com';
+const API_URL = 'http://localhost:3000';
 
 let currentUser        = null;
 let ws                 = null;
@@ -47,6 +47,9 @@ function setupEventListeners() {
     document.getElementById('username')?.addEventListener('keypress', e => { if (e.key === 'Enter') login(); });
     document.getElementById('password')?.addEventListener('keypress', e => { if (e.key === 'Enter') login(); });
 
+    // Show/hide password toggle
+    document.getElementById('toggle-password')?.addEventListener('click', togglePassword);
+
     // Nav
     document.querySelectorAll('.nav-item[data-page]').forEach(item => {
         item.addEventListener('click', () => navigateTo(item.dataset.page));
@@ -84,6 +87,8 @@ function setupEventListeners() {
         });
     });
 }
+
+
 
 // ════════════════════════════════════════
 //  macOS DOCK TOGGLE
@@ -136,7 +141,7 @@ function setupImageUpload() {
             if (!file) return;
             const valid = ['image/png','image/jpeg','image/jpg','image/webp','image/gif'];
             if (!valid.includes(file.type)) { showToast('Formato inválido. Use PNG, JPG, WEBP ou GIF.', 'error'); return; }
-            if (file.size > 5 * 1024 * 1024) { showToast('Imagem muito grande. Máximo 5MB.', 'error'); return; }
+            if (file.size > 5 * 1024 * 1024) { showToast('Imagem muito grande. Máximo 5MB.', 'error'); return; } // 5MB limit
 
             currentImageFile = file;
             const reader = new FileReader();
@@ -166,7 +171,7 @@ function fileToBase64(file) {
 }
 
 // ════════════════════════════════════════
-//  EMOJI PICKER
+//  EMOJI PICKER Arrumar
 // ════════════════════════════════════════
 let currentEmojiTarget = null;
 
@@ -293,19 +298,93 @@ function showApp() {
     loadSuggestions();
     updateUserStats();
     setupEmojiPicker();
+    startPolling(); 
+    aplicarTemaSalvo();  
+    aplicarAcessibilidadeSalva(); // ← adiciona
+    aplicarTemaSalvo();
 }
 
+// ════════════════════════════════════════
+//  AVATAR PADRÃO COM INICIAIS (UI Avatars)
+// ════════════════════════════════════════
+
+// Função para gerar URL do avatar com as iniciais do usuário
+function gerarAvatarComIniciais(nome) {
+    if (!nome || nome.trim() === '') {
+        nome = 'Usuario';
+    }
+    // Pega as primeiras letras de cada parte do nome (máx 2 letras)
+    const iniciais = nome.split(' ')
+        .map(palavra => palavra[0])
+        .join('')
+        .toUpperCase()
+        .slice(0, 2);
+    
+    // Se não conseguiu iniciais, usa 'U'
+    const letras = iniciais || 'U';
+    
+    // Retorna URL da API com iniciais e fundo aleatório
+    return `https://ui-avatars.com/api/?name=${letras}&background=1da1f2&color=fff&bold=true&size=128&rounded=true&length=2`;
+}
+
+// Avatar padrão fixo (fallback caso a API falhe)
+const AVATAR_PADRAO_FIXO = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 24 24" fill="%23999"%3E%3Cpath d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/%3E%3C/svg%3E';
+
+// Função principal para obter a URL do avatar
+function getAvatarUrl(avatarUrl, username = '') {
+    // Se o usuário já tem uma foto personalizada, usa ela
+    if (avatarUrl && avatarUrl.trim() !== '' && avatarUrl !== 'null' && avatarUrl !== 'undefined') {
+        return avatarUrl;
+    }
+    
+    // Se não tem foto, gera avatar com as iniciais do nome
+    if (username) {
+        return gerarAvatarComIniciais(username);
+    }
+    
+    // Fallback: avatar SVG puro
+    return AVATAR_PADRAO_FIXO;
+}
+
+// Função para tratar erro de carregamento da imagem
+function handleImageError(imgElement, username = '') {
+    if (imgElement.src !== AVATAR_PADRAO_FIXO) {
+        // Tenta gerar avatar com iniciais
+        if (username) {
+            imgElement.src = gerarAvatarComIniciais(username);
+        } else {
+            imgElement.src = AVATAR_PADRAO_FIXO;
+        }
+        imgElement.onerror = null;
+    }
+}
+
+
 function updateUI() {
-    ['sidebar-avatar','post-avatar'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el && currentUser) el.src = currentUser.avatar;
-    });
+    // Sidebar avatar - agora com iniciais se não tiver foto
+    const sidebarAvatar = document.getElementById('sidebar-avatar');
+    if (sidebarAvatar && currentUser) {
+        sidebarAvatar.src = getAvatarUrl(currentUser.avatar, currentUser.username);
+        sidebarAvatar.onerror = function() { 
+            handleImageError(this, currentUser.username);
+        };
+    }
+    
+    // Post avatar (área de criar post)
+    const postAvatar = document.getElementById('post-avatar');
+    if (postAvatar && currentUser) {
+        postAvatar.src = getAvatarUrl(currentUser.avatar, currentUser.username);
+        postAvatar.onerror = function() { 
+            handleImageError(this, currentUser.username);
+        };
+    }
+    
+    // Username e handle
     const su = document.getElementById('sidebar-username');
     const sh = document.getElementById('sidebar-handle');
     if (su) su.textContent = currentUser.username;
     if (sh) sh.textContent = `@${currentUser.username}`;
 }
-
 // ════════════════════════════════════════
 //  NAVIGATION
 // ════════════════════════════════════════
@@ -365,6 +444,8 @@ async function createPost() {
     const content = document.getElementById('post-input').value.trim();
     let imageUrl  = document.getElementById('image-url-input')?.value.trim() || '';
 
+
+
     if (!content && !imageUrl && !currentImageFile) {
         showToast('Digite algo ou adicione uma imagem!', 'warning');
         return;
@@ -397,6 +478,8 @@ async function createPost() {
             currentImageFile = null;
             showToast('Post publicado! 🎉', 'success');
             loadPosts();
+        } else if (res.status === 400) {
+            showToast('Post contém conteúdo inapropriado!', 'error');
         } else {
             showToast('Erro ao publicar post', 'error');
         }
@@ -447,7 +530,6 @@ function displayPosts(posts) {
     timeline.innerHTML = posts.map(createPostElement).join('');
     updatePostsCount();
 }
-
 function createPostElement(post) {
     const isLiked    = post.likes?.includes(currentUser.id);
     const isRetweet  = post.retweets?.includes(currentUser.id);
@@ -458,11 +540,14 @@ function createPostElement(post) {
         ? `<div class="retweet-indicator"><i class="fas fa-retweet"></i><span>${escapeHtml(post.retweetedBy)} retweetou</span></div>`
         : '';
 
+    // 🔧 AVATAR PADRÃO - URL calculada aqui
+    const avatarUrl = getAvatarUrl(post.avatar, post.username);
+
     return `
     <div class="post" data-post-id="${post.id}">
         ${rtIndicator}
         <div class="post-header">
-            <img src="${escapeHtml(post.avatar || '')}" class="post-avatar" onclick="viewUserProfile('${post.userId}')" alt="avatar">
+            <img src="${avatarUrl}" class="post-avatar" onclick="viewUserProfile('${post.userId}')" alt="avatar" onerror="this.onerror=null;this.src='${AVATAR_PADRAO_FIXO}'">
             <div class="post-info">
                 <div class="post-user">
                     <span class="post-username" onclick="viewUserProfile('${post.userId}')">${escapeHtml(post.username)}</span>
@@ -473,36 +558,44 @@ function createPostElement(post) {
                 <div class="post-content">${escapeHtml(post.content)}</div>
                 ${post.imageUrl ? `<img src="${post.imageUrl}" class="post-image" onclick="openImageModal('${escapeHtml(post.imageUrl)}')" alt="imagem do post">` : ''}
                 <div class="post-actions">
-                    <div class="post-action ${isLiked ? 'liked' : ''}" onclick="likePost('${post.id}')">
+                   <div class="post-action like-action ${isLiked ? 'liked' : ''}" onclick="likePost('${post.id}')">
                         <i class="fas fa-heart"></i>
                         <span class="like-count">${post.likes?.length || 0}</span>
                     </div>
-                    <div class="post-action" onclick="toggleComments('${post.id}')">
+                   <div class="post-action" onclick="toggleComments(&quot;${post.id}&quot;)">
                         <i class="fas fa-comment"></i>
                         <span>${post.comments?.length || 0}</span>
                     </div>
-                    <div class="post-action retweet-action ${isRetweet ? 'retweeted' : ''}" onclick="retweet('${post.id}')">
+                   <div class="post-action retweet-action ${isRetweet ? 'retweeted' : ''}" onclick="retweet(&quot;${post.id}&quot;)">
                         <i class="fas fa-retweet"></i>
                         <span class="retweet-count">${post.retweets?.length || 0}</span>
                     </div>
-                    <div class="post-action ${isSaved ? 'saved' : ''}" onclick="savePost('${post.id}')">
+                   <div class="post-action ${isSaved ? 'saved' : ''}" onclick="savePost(&quot;${post.id}&quot;)">
                         <i class="fas fa-bookmark"></i>
                         <span>${isSaved ? 'Salvo' : 'Salvar'}</span>
                     </div>
                 </div>
                 <div class="comments-section" id="comments-${post.id}" style="display:none;">
                     <div id="comments-list-${post.id}">
-                        ${(post.comments || []).map(c => `
-                            <div class="comment">
-                                <img src="${escapeHtml(c.avatar || '')}" class="comment-avatar" onclick="viewUserProfile('${c.userId}')" alt="">
-                                <div class="comment-content">
-                                    <div class="comment-user">
-                                        <span class="comment-username" onclick="viewUserProfile('${c.userId}')">${escapeHtml(c.username)}</span>
-                                        <span class="comment-handle">@${escapeHtml(c.username)}</span>
-                                    </div>
-                                    <div class="comment-text">${escapeHtml(c.content)}</div>
-                                </div>
-                            </div>`).join('') || '<p style="color:var(--text-muted);font-size:0.82rem;padding:8px 0;">Nenhum comentário ainda</p>'}
+                       ${(post.comments || []).map(c => {
+    const commentAvatarUrl = getAvatarUrl(c.avatar, c.username);
+    return `
+    <div class="comment">
+        <img src="${commentAvatarUrl}" class="comment-avatar" onclick="viewUserProfile('${c.userId}')" alt="" onerror="this.onerror=null;this.src='${AVATAR_PADRAO_FIXO}'">
+        <div class="comment-content">
+            <div class="comment-user">
+                <span class="comment-username" onclick="viewUserProfile('${c.userId}')">${escapeHtml(c.username)}</span>
+                <span class="comment-handle">@${escapeHtml(c.username)}</span>
+                ${String(c.userId) === String(currentUser.id) ? `
+                    <span style="margin-left:auto;cursor:pointer;color:var(--text-muted);" 
+                          onclick="deleteComment('${post.id}','${c.id}')">
+                        <i class="fas fa-trash" style="font-size:0.75rem;"></i>
+                    </span>` : ''}
+            </div>
+            <div class="comment-text">${escapeHtml(c.content)}</div>
+        </div>
+    </div>`;
+}).join('') || '<p style="color:var(--text-muted);font-size:0.82rem;padding:8px 0;">Nenhum comentário ainda</p>'}
                     </div>
                     <div class="comment-form">
                         <input type="text" id="comment-input-${post.id}" class="comment-input" placeholder="Adicione um comentário...">
@@ -516,7 +609,7 @@ function createPostElement(post) {
 
 async function likePost(postId) {
     try {
-        const res  = await fetch(`${API_URL}/posts/like`, {
+         const res = await fetch(`${API_URL}/posts/like`, { 
             method: 'POST',
             headers: {'Content-Type':'application/json'},
             body: JSON.stringify({ postId, userId: currentUser.id })
@@ -529,18 +622,41 @@ async function likePost(postId) {
 }
 
 function updatePostLikes(postId, likes) {
-    const el = document.querySelector(`.post[data-post-id="${postId}"]`);
-    if (!el) return;
-    const action    = el.querySelector('.post-action:first-child');
-    const countSpan = action?.querySelector('.like-count');
-    if (countSpan) countSpan.textContent = likes.length;
-    if (likes.includes(currentUser.id)) action?.classList.add('liked');
-    else action?.classList.remove('liked');
-}
-
+    console.log('🔄 Updating likes for post:', postId, 'Likes:', likes);
+    
+    // Busca o post pelo ID
+    const postDiv = document.querySelector(`.post[data-post-id="${postId}"]`);
+    if (!postDiv) {
+        console.log('❌ Post not found in DOM:', postId);
+        return;
+    }
+    
+    // Busca o botão de like (primeiro .post-action com ícone de coração)
+    const likeBtn = postDiv.querySelector('.post-action .fa-heart')?.closest('.post-action');
+    if (!likeBtn) {
+        console.log('❌ Like button not found');
+        return;
+    }
+    
+    // Atualiza contador
+    const countSpan = likeBtn.querySelector('.like-count');
+    if (countSpan) {
+        countSpan.textContent = likes.length;
+        console.log('✅ Like count updated to:', likes.length);
+    }
+    
+    // Atualiza estilo visual
+    if (likes.includes(currentUser.id)) {
+        likeBtn.classList.add('liked');
+        console.log('❤️ Like button marked as liked');
+    } else {
+        likeBtn.classList.remove('liked');
+        console.log('💔 Like button marked as not liked');
+    }
+}  
 async function retweet(postId) {
     try {
-        const res  = await fetch(`${API_URL}/posts/retweet`, {
+        const res = await fetch(`${API_URL}/posts/retweet`, { 
             method: 'POST',
             headers: {'Content-Type':'application/json'},
             body: JSON.stringify({ postId, userId: currentUser.id })
@@ -596,7 +712,13 @@ async function addComment(postId) {
                 content
             })
         });
-        if (res.ok) { input.value = ''; showToast('Comentário adicionado!', 'success'); loadPosts(); }
+        if (res.ok) { 
+            input.value = '';
+             showToast('Comentário adicionado!', 'success');
+             loadPosts();
+            } else if (res.status === 400) {
+                showToast('Comentário contém conteúdo inapropriado', 'error');
+            } 
     } catch { /* silent */ }
 }
 
@@ -610,6 +732,20 @@ function openImageModal(url) {
     const img   = document.getElementById('modal-image');
     if (modal && img) { img.src = url; modal.classList.add('active'); }
 }
+
+async function deleteComment(postId, commentId) {
+    if (!confirm('Excluir comentário?')) return;
+    try {
+        const res = await fetch(`${API_URL}/posts/${postId}/comments/${commentId}`, {
+            method: 'DELETE',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({ userId: currentUser.id })
+        });
+        if (res.ok) { showToast('Comentário excluído', 'success'); loadPosts(); }
+        else showToast('Sem permissão', 'error');
+    } catch { /* silent */ }
+}
+
 
 // ════════════════════════════════════════
 //  BOOKMARKS
@@ -712,7 +848,7 @@ async function loadProfileData(userId) {
                 ${user.coverImage ? `<img src="${escapeHtml(user.coverImage)}" class="profile-cover-img" alt="capa">` : ''}
             </div>
             <div class="profile-avatar-wrapper">
-                <img src="${escapeHtml(user.avatar || '')}" class="profile-avatar-large" alt="avatar">
+               <img src="${getAvatarUrl(user.avatar, user.username)}" class="profile-avatar-large" alt="avatar" onerror="this.onerror=null;this.src='${AVATAR_PADRAO_FIXO}'">
             </div>
             <div class="profile-info">
                 <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;">
@@ -768,7 +904,7 @@ async function loadProfileData(userId) {
             </div>
         </div>`;
 
-        document.title = `${user.username} | Nexus Social`;
+        document.title = `${user.username} | Tiwitter Social`;
     } catch (err) {
         console.error(err);
         showToast('Erro ao carregar perfil', 'error');
@@ -840,7 +976,7 @@ async function loadTrendingTopics() {
     if (!container) return;
 
     const topics = [
-        { topic:'#NexusSocial', posts:'15.2k', icon:'fa-chart-line', color:'var(--success)' },
+        { topic:'#TiwitterSocial', posts:'15.2k', icon:'fa-chart-line', color:'var(--success)' },
         { topic:'#Inovação',    posts:'8.7k',  icon:'fa-arrow-up',   color:'var(--danger)'  },
         { topic:'#Tecnologia',  posts:'12.3k', icon:'fa-microchip',  color:'var(--primary)' },
         { topic:'#Design',      posts:'4.2k',  icon:'fa-paint-brush',color:'var(--accent)'  },
@@ -1010,7 +1146,12 @@ async function sendMessage() {
             headers: {'Content-Type':'application/json'},
             body: JSON.stringify({ from: currentUser.id, to: currentConversation, content })
         });
-        if (res.ok) { input.value = ''; openConversation(currentConversation); }
+        if (res.ok) {
+             input.value = '';
+              openConversation(currentConversation);
+             } else if (res.status === 400) {
+                showToast('Não é possível enviar mensagem para este usuário', 'error');
+             }
     } catch { /* silent */ }
 }
 
@@ -1038,7 +1179,7 @@ async function likeMessage(msgId) {
 }
 
 // ════════════════════════════════════════
-//  NOTIFICATIONS
+//  NOTIFICATIONS  
 // ════════════════════════════════════════
 async function loadNotifications() {
     try {
@@ -1097,6 +1238,33 @@ function updateNotificationBadge() {
     }
 }
 
+
+//FUNÇÕES DE ACESSIBILIDADE
+function toggleHighContrast() {
+    document.body.classList.toggle('high-contrast');
+    localStorage.setItem('high-contrast', document.body.classList.contains('high-contrast'));
+    showToast('Alto contraste ' + (document.body.classList.contains('high-contrast') ? 'ativado' : 'desativado'), 'info');
+}
+
+function toggleLargeText() {
+    document.body.classList.toggle('large-text');
+    localStorage.setItem('large-text', document.body.classList.contains('large-text'));
+    showToast('Texto grande ' + (document.body.classList.contains('large-text') ? 'ativado' : 'desativado'), 'info');
+}
+
+function resetAccessibility() {
+    document.body.classList.remove('high-contrast', 'large-text');
+    localStorage.removeItem('high-contrast');
+    localStorage.removeItem('large-text');
+    showToast('Acessibilidade resetada', 'info');
+}
+
+function aplicarAcessibilidadeSalva() {
+    if (localStorage.getItem('high-contrast') === 'true') document.body.classList.add('high-contrast');
+    if (localStorage.getItem('large-text') === 'true') document.body.classList.add('large-text');
+}
+
+
 // ════════════════════════════════════════
 //  SETTINGS
 // ════════════════════════════════════════
@@ -1109,12 +1277,21 @@ function openSettingsModal() {
             <h2 style="margin-bottom:24px;font-size:1.3rem;font-weight:800;letter-spacing:-0.03em;">
                 <i class="fas fa-cog" style="color:var(--primary);margin-right:10px;"></i>Configurações
             </h2>
-            <div class="settings-section">
-                <h3>Aparência</h3>
-                <button class="btn-secondary-sm" onclick="document.body.classList.toggle('high-contrast');showToast('Alto contraste alternado','info')">Alto Contraste</button>
-                <button class="btn-secondary-sm" onclick="document.body.classList.toggle('large-text');showToast('Texto grande alternado','info')">Texto Grande</button>
-                <button class="btn-secondary-sm" onclick="document.body.classList.remove('high-contrast','large-text');showToast('Resetado','info')">Resetar</button>
-            </div>
+           <div class="settings-section">
+    <h3>Tema</h3>
+    <button class="btn-secondary-sm ${localStorage.getItem('tema') === 'padrao' || !localStorage.getItem('tema') ? 'active' : ''}" 
+            onclick="mudarTema('padrao')">🟣 Padrão</button>
+    <button class="btn-secondary-sm ${localStorage.getItem('tema') === 'escuro' ? 'active' : ''}" 
+            onclick="mudarTema('escuro')">⚫ Escuro</button>
+    <button class="btn-secondary-sm ${localStorage.getItem('tema') === 'claro' ? 'active' : ''}" 
+            onclick="mudarTema('claro')">⚪ Claro</button>
+</div>
+<div class="settings-section">
+    <h3>Acessibilidade</h3>
+    <button class="btn-secondary-sm" onclick="toggleHighContrast()">Alto Contraste</button>
+    <button class="btn-secondary-sm" onclick="toggleLargeText()">Texto Grande</button>
+    <button class="btn-secondary-sm" onclick="resetAccessibility()">Resetar</button>
+</div>
             <div class="settings-section">
                 <h3>Sidebar</h3>
                 <button class="btn-secondary-sm" onclick="toggleSidebar();showToast('Sidebar alternada','info')">
@@ -1124,7 +1301,7 @@ function openSettingsModal() {
             <div class="settings-section">
                 <h3>Sobre</h3>
                 <p style="font-size:0.88rem;color:var(--text-secondary);line-height:1.6;">
-                    <strong style="color:var(--text);">Nexus Social v2.0</strong><br>
+                    <strong style="color:var(--text);">Tiwitter Social v2.0</strong><br>
                     Conecte-se com o mundo de forma inovadora.<br>
                     Projeto acadêmico — design premium.
                 </p>
@@ -1135,27 +1312,129 @@ function openSettingsModal() {
     modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
 }
 
+
+// ============= Mudança de tema ==========
+function mudarTema(tema) {
+    document.body.classList.remove('tema-escuro', 'tema-claro');
+    
+    if (tema === 'escuro') {
+        document.body.classList.add('tema-escuro');
+    } else if (tema === 'claro') {
+        document.body.classList.add('tema-claro');
+    }
+    
+    localStorage.setItem('tema', tema);
+    showToast(`Tema ${tema} aplicado!`, 'success');
+}
+
+function aplicarTemaSalvo() {
+    const tema = localStorage.getItem('tema') || 'padrao';
+    mudarTema(tema);
+}
+
+
 // ════════════════════════════════════════
 //  WEBSOCKET
 // ════════════════════════════════════════
+
+
 function connectWebSocket() {
     try {
-     const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
-    const wsUrl = `${protocol}://${window.location.host}`;
-        ws = new WebSocket('wss:https://meu-twitter-projeto-x.onrender.com');
+        ws = new WebSocket('wss://meu-twitter-projeto-x.onrender.com');
         ws.onopen  = () => console.log('✅ WebSocket conectado');
         ws.onmessage = (event) => {
-        const data = JSON.parse(event.data);
-        handleWebSocketMessage(data); // Sua função que trata as notificações/posts
-    };
-        ws.onerror  = () => { /* silent */ };
-        ws.onclose = () => {
-        console.log('🔌 WebSocket desconectado. Tentando reconectar...');
-        setTimeout(connectWebSocket, 3000); // Tenta reconectar se cair
-    };
+            try {
+                console.log('RAW:', event.data);
+                const data = JSON.parse(event.data);
+                console.log('PARSED:', data);
+                handleRealtime(data);
+            } catch (e) {
+                console.error('Parse error:', e);
+            }
+        };
+      ws.onerror = (e) => console.error('WS error:', e);
+ws.onclose = (e) => {
+    console.log('WS fechado, código:', e.code, 'motivo:', e.reason);
+    setTimeout(connectWebSocket, 4000);
+};
     } catch { /* silent */ }
 }
 
+
+
+// ════════════════════════════════════════
+//  WEBSOCKET - VERSÃO CORRIGIDA
+// ════════════════════════════════════════
+
+function handleWebSocketMessage(event) {
+    try {
+        // 🔧 CORREÇÃO: Verifica se event já é o objeto ou se precisa fazer parse
+        let data;
+        
+        if (typeof event === 'string') {
+            data = JSON.parse(event);
+        } else if (event.data && typeof event.data === 'string') {
+            data = JSON.parse(event.data);
+        } else if (event.data && typeof event.data === 'object') {
+            data = event.data;
+        } else if (typeof event === 'object') {
+            data = event;
+        } else {
+            console.error('❌ Cannot parse WebSocket data:', event);
+            return;
+        }
+        
+        console.log('📨 WebSocket message:', data);
+        
+        switch (data.type) {
+            case 'new_post':
+                if (currentView === 'home') loadPosts();
+                break;
+            case 'like_update':
+                if (data.data && data.data.postId) {
+                    updatePostLikes(data.data.postId, data.data.likes);
+                }
+                break;
+            case 'new_comment':
+                if (currentView === 'home') loadPosts();
+                break;
+            case 'new_message':
+                if (currentView === 'messages' && currentConversation &&
+                    (data.data?.from === currentConversation || data.data?.to === currentConversation)) {
+                    openConversation(currentConversation);
+                }
+                if (data.data?.to === currentUser?.id) showToast('💬 Nova mensagem!', 'info');
+                break;
+            case 'follow_update':
+                updateUserStats();
+                if (currentView === 'profile') loadProfileData(viewingUserId || currentUser?.id);
+                break;
+            case 'user_updated':
+                if (data.data?.id === currentUser?.id) {
+                    currentUser = data.data;
+                    localStorage.setItem('user', JSON.stringify(currentUser));
+                    updateUI();
+                }
+                break;
+            case 'new_notification':
+                if (currentView === 'notifications') loadNotifications();
+                unreadNotificationsCount++;
+                updateNotificationBadge();
+                showToast('🔔 Nova notificação!', 'info');
+                break;
+            case 'retweet_update':
+                loadPosts();
+                break;
+            case 'post_deleted':
+                if (currentView === 'home') loadPosts();
+                break;
+            default:
+                console.log('Unknown message type:', data.type);
+        }
+    } catch (error) {
+        console.error('❌ Error handling WebSocket message:', error);
+    }
+}
 function handleRealtime(data) {
     switch (data.type) {
         case 'new_post':
@@ -1239,3 +1518,58 @@ function showToast(msg, type = 'info') {
     c.appendChild(toast);
     setTimeout(() => { toast.style.transition = 'opacity 0.3s'; toast.style.opacity = '0'; setTimeout(() => toast.remove(), 300); }, 3000);
 }
+
+function togglePassword() {
+    const passwordInput = document.getElementById('password');
+    const toggleIcon = document.getElementById('toggle-password');
+
+    if (passwordInput.type === 'password') {
+        passwordInput.type = 'text';
+        toggleIcon.classList.remove('fa-eye');
+        toggleIcon.classList.add('fa-eye-slash');
+    } else {
+        passwordInput.type = 'password';
+        toggleIcon.classList.remove('fa-eye-slash');
+        toggleIcon.classList.add('fa-eye');
+    }
+}
+
+let lastPostsSnapshot = '';
+let pollingInterval   = null;
+
+
+//updates em geral (likes, comentários, retweets) para manter a interface atualizada mesmo sem websocket
+async function pollUpdates() {
+    try {
+        const res   = await fetch(`${API_URL}/posts`);
+        const posts = await res.json();
+
+        // Compara o estado atual com o anterior
+        const snapshot = JSON.stringify(posts.map(p => ({
+            id:       p.id,
+            likes:    p.likes?.length,
+            retweets: p.retweets?.length,
+            comments: p.comments?.length
+        })));
+
+        if (snapshot !== lastPostsSnapshot) {
+            lastPostsSnapshot = snapshot;
+            allPosts = posts;
+            filterAndDisplayPosts(); // usa sua função existente
+        }
+    } catch {
+        // servidor offline — polling tenta de novo no próximo ciclo
+    }
+}
+
+function startPolling(intervalMs = 5000) {
+    if (pollingInterval) return; // evita duplicar
+    pollUpdates(); // roda imediatamente
+    pollingInterval = setInterval(pollUpdates, intervalMs);
+}
+
+function stopPolling() {
+    clearInterval(pollingInterval);
+    pollingInterval = null;
+}
+
