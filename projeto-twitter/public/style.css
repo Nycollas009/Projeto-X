@@ -69,6 +69,23 @@ body {
     overflow-x: hidden;
 }
 
+::-webkit-scrollbar:horizontal {
+    height: 6px;
+}
+
+::-webkit-scrollbar-track:horizontal {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb:horizontal {
+    background: rgba(102,126,234,0.4);
+    border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:horizontal:hover {
+    background: var(--primary);
+}
+
 /* Noise texture overlay for depth */
 body::before {
     content: '';
