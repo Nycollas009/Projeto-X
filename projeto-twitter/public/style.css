@@ -56,8 +56,17 @@ body {
     background: var(--bg-void);
     color: var(--text);
     font-family: var(--font-display);
-    overflow-x: hidden;
+    overflow-x: auto;
     min-height: 100vh;
+}
+
+#app-container {
+    min-width: 320px;
+}
+
+.main-content {
+    min-width: 0;
+    overflow-x: hidden;
 }
 
 /* Noise texture overlay for depth */
@@ -823,7 +832,14 @@ body.large-text { font-size: 118%; }
 .char-counter.danger  { color: var(--danger); }
 
 .image-preview { position: relative; margin-top: 12px; border-radius: var(--radius); overflow: hidden; }
-.image-preview img { width:100%; max-height:200px; object-fit:cover; border-radius:var(--radius); display:block; }
+.image-preview img {
+    width: 100%;
+    max-height: 300px;
+    object-fit: contain; /* ← mantém proporção sem cortar */
+    border-radius: var(--radius);
+    background: var(--bg-elevated); /* ← fundo para imagens com transparência */
+    display: block;
+}
 
 .remove-image-btn {
     position: absolute;
