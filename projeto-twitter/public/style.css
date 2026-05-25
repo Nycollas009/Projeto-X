@@ -118,7 +118,7 @@ body::after {
 
 /* ── ACCESSIBILITY ── */
 body.high-contrast { --bg-dark:#000; --bg-card:#000; --text:#fff; --text-secondary:#ff0; --primary:#ff0; --border:#fff; }
-body.large-text { font-size: 118%; }
+body.large-text { font-size: 130%; }
 
 /* ============================================================
    TOAST

@@ -383,9 +383,12 @@ async function login() {
             localStorage.setItem('user', JSON.stringify(currentUser));
             showToast(`Bem-vindo, ${currentUser.username}! 👋`, 'success');
             showApp();
+        } else if (res.status === 400) {
+            const data = await res.json();
+            showToast(data.error, 'error');
         } else {
             showToast('Erro ao fazer login', 'error');
-        }
+}
     } catch (err) {
         showToast('Servidor offline. Verifique se o servidor está rodando.', 'error');
     }

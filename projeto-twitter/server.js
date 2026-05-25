@@ -80,7 +80,20 @@ app.post('/login-register', async (req, res) => {
     const { username, password } = req.body;
     const db = readDB();
     let user = db.users.find(u => u.username === username);
+    
+     if (!user) {
+        const erroSenha = validarSenha(password);
+        if (erroSenha) {
+            return res.status(400).json({ error: erroSenha });
+        }
+    }
+    if (password.length < 6) {
+        return res.status(400).json({ error: 'A senha deve ter no mínimo 6 caracteres!' });
+    }
 
+    if (password.length > 20) {
+        return res.status(400).json({ error: 'A senha deve ter no máximo 20 caracteres!' });
+    }
     if (user) {
        
         const passwordMatch = await bcrypt.compare(password, user.password);
@@ -117,6 +130,25 @@ app.post('/login-register', async (req, res) => {
     const { password: _, ...userWithoutPassword } = user;
     res.json({ user: userWithoutPassword });
 });
+
+function validarSenha(password) {
+    if (password.length < 6) {
+        return 'A senha deve ter no mínimo 6 caracteres!';
+    }
+    if (password.length > 20) {
+        return 'A senha deve ter no máximo 20 caracteres!';
+    }
+    if (!/[A-Z]/.test(password)) {
+        return 'A senha deve ter pelo menos uma letra maiúscula!';
+    }
+    if (!/[0-9]/.test(password)) {
+        return 'A senha deve ter pelo menos um número!';
+    }
+    if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) {
+        return 'A senha deve ter pelo menos um caractere especial (!@#$%...)!';
+    }
+    return null; // senha válida
+}
 
 //=================================
 // GIPHY API
@@ -289,52 +321,83 @@ app.post('/users/unfollow', (req, res) => {
 
 // CENSURA ==
 
-const palavrasProibidas = ['porra', 'porr4', 'p0rra', 'porras', 'poha', 'p0ha', 'poh4', 'pohas',
+const palavrasProibidas = [// Palavrões gerais
+    'porra', 'porr4', 'p0rra', 'porras',
     'merda', 'merd4', 'm3rda', 'merdas',
     'caralho', 'c4ralho', 'car4lho', 'caralh0',
     'foda', 'f0da', 'fodas', 'fode', 'fodendo', 'fodido', 'fodida',
-    'viado', 'vi4do', 'viad0', 'viados',
     'buceta', 'buc3ta', 'buc4ta', 'bucetas',
-    'cu', 'cú', 'viadinho', 'fuder', 'fudendo',
-    'puta', 'put4', 'putas', 'putaria', 'put4ria',
-    'vagabunda', 'vag4bunda', 'vagabundo',
-    'desgraça', 'desgr4ça', 'desgraçado', 'desgraçada',
-    'inferno', 'inf3rno',
-    'idiota', 'idi0ta', 'idiotas',
-    'imbecil', 'imb3cil', 'imbecis',
-    'burro', 'burra', 'burros', 'burras',
-    'otario', 'otário', '0t4rio', 'otaria',
-    'corno', 'corn0', 'cornos', 'corna',
-    'safado', 'saf4do', 'safada', 'safados',
-    'piranha', 'pir4nha', 'piranhas',
-    'prostituta', 'prost1tuta', 'prostitutas',
-    'punheta', 'punh3ta', 'punhetas',
-    'arrombado', 'arromb4do', 'arrombada',
-    'fdp', 'f.d.p', 'filhadaputa', 'filhode puta', 'filho da puta',
-    'vsf', 'v.s.f', 'vai se foder', 'vaise fuder',
-    'tnc', 't.n.c', 'tomanocú', 'toma no cu',
-    'pnc', 'p.n.c',
-    'krl', 'krlh',
-    'pqp', 'p.q.p',
-    'stnc', 's.t.n.c',
-    'cacete', 'cac3te', 'cacetes',
-    'pau', 'p4u',
-    'rola', 'r0la', 'rolas',
-    'xota', 'xox0ta', 'xoxota',
-    'pentelho', 'pent3lho',
-    'cuzao', 'cuzão', 'cuz4o',
-    'babaca', 'bab4ca', 'babacas',
-    'retardado', 'ret4rdado', 'retardada',
-    'mongol', 'm0ngol',
-    'lixo', 'l1xo',
-    'bucet4', 'buc3t4', 'bucet@',
-    'canalha', 'can4lha', 'canalhas',
-    'lazarento', 'laz4rento', 'lazarenta',
-    'maldito', 'mald1to', 'maldita',
-    'assassino', 'ass4ssino',
-    'prostituto', 'prost1tuto','prostitutos',
-    'bosta', 'b0sta', 'bostas',
-    'meretriz', 'mer3triz', 'meretrizes', 'furry', 'furries','femboy', 'femboys', 'seu preto', 'neguinho', 'sua preta', 'neguinha', 'seu viado', 'sua viada', 'seu vagabundo', 'sua vagabunda'
+    'cu', 'cú', 'cuzao', 'cuzão',
+    'puta', 'put4', 'putas', 'putaria',
+    'vagabunda', 'vagabundo', 'vag4bunda',
+    'safado', 'safada', 'saf4do',
+    'piranha', 'pir4nha',
+    'prostituta', 'prostituto',
+    'punheta', 'punh3ta',
+    'arrombado', 'arrombada',
+    'cacete', 'cac3te',
+    'pau', 'rola', 'xoxota',
+    'fdp', 'filhadaputa', 'filho da puta', 'filho de puta',
+    'vsf', 'vai se foder', 'vai se fuder',
+    'tnc', 'toma no cu',
+    'pqp', 'krl', 'krlh',
+    'babaca', 'bab4ca',
+    'retardado', 'retardada', 'ret4rdado',
+    'imbecil', 'idiota', 'idi0ta',
+    'canalha', 'desgraça', 'desgraçado',
+
+    // Machistas
+    'feminazi', 'histérica', 'histérico',
+    'mulher no volante', 'lugar de mulher',
+    'mulher não presta', 'vai lavar louça',
+    'vai cozinhar', 'vai ter filho',
+    'mulher burra', 'mulher idiota',
+    'sua vez de calar', 'cala boca mulher',
+    'fresca', 'pirua', 'vaca',
+    'galinha', 'rapariga',
+    'mulher é objeto', 'mulher é propriedade',
+
+    // Racistas
+    'macaco', 'macacada',
+    'nego', 'nega', 'neguinho',
+    'crioulo', 'crioula',
+    'preto safado', 'preta safada',
+    'volta pra africa', 'volta para a africa',
+    'escravidão deveria voltar',
+    'raça inferior', 'raça ruim',
+    'cabelo ruim', 'nariz de macaco',
+    'nordestino burro', 'baiano burro',
+    'paraíba', 'pau de arara',
+    'amarelado', 'olho puxado',
+    'japonês de merda', 'chinês de merda',
+
+    // Homofóbicas
+    'viado', 'vi4do', 'viad0', 'viadinho',
+    'sapatão', 'sapat4o',
+    'traveco', 'trav3co',
+    'bicha', 'bich4',
+    'gay de merda', 'lésbica de merda',
+    'cura gay', 'gay tem cura',
+    'abominação', 'doença mental gay',
+    'família normal', 'família de verdade',
+    'isso é pecado', 'vai pro inferno gay',
+    'homossexualismo', // termo incorreto e pejorativo
+
+    // Preconceituosas gerais
+    'judeu safado', 'judeu de merda',
+    'muçulmano terrorista', 'islâmico terrorista',
+    'evangélico hipócrita', 'crente de merda',
+    'ateu sem moral',
+    'gordo inútil', 'gordo nojento', 'gorda nojenta',
+    'aleijado', 'aleijada',
+    'mongolóide', 'mongol',
+    'louco de hospício', 'maluco de hospício',
+    'pobre vagabundo', 'pobre inútil',
+    'favelado', 'favelada',
+    'mendigo inútil', 'mendigo de merda',
+    'deficiente inútil', 'deficiente mental',
+    'esquizofrênico', // usado como xingamento
+    'autista', // usado como xingamento
 ];
 
 function contemPalavrasProibidas(texto) {
@@ -530,7 +593,7 @@ app.post('/posts/retweet', (req, res) => {
                 db.notifications.push(notification);
             }
         }
-        
+        h
         writeDB(db);
         
         try {
@@ -754,7 +817,7 @@ app.get('/messages/:userId/:otherUserId', (req, res) => {
 
 app.post('/messages', (req, res) => {
     const { from, to, content } = req.body;
-    
+
     if (verificarSpam(from, 'message', 2000)) { // 2 segundos entre mensagens
         return res.status(429).json({ error: 'Aguarde antes de enviar outra mensagem!' });
     }
