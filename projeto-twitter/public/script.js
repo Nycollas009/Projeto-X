@@ -597,8 +597,6 @@ async function createPost() {
     const content = document.getElementById('post-input').value.trim();
     let imageUrl  = document.getElementById('image-url-input')?.value.trim() || '';
 
-
-
     if (!content && !imageUrl && !currentImageFile) {
         showToast('Digite algo ou adicione uma imagem!', 'warning');
         return;
@@ -607,10 +605,7 @@ async function createPost() {
     if (currentImageFile) {
         try { imageUrl = await fileToBase64(currentImageFile); }
         catch { showToast('Erro ao processar imagem', 'error'); return; }
-    } else if (res.status === 429) {
-    showToast('Aguarde antes de postar novamente! ⏳', 'warning');
-}
-    
+    }
 
     try {
         const res = await fetch(`${API_URL}/posts`, {
@@ -626,7 +621,7 @@ async function createPost() {
         });
 
         if (res.ok) {
-            document.getElementById('post-input').value    = '';
+            document.getElementById('post-input').value = '';
             document.getElementById('image-url-input').value = '';
             document.getElementById('char-count').textContent = '0';
             const prev = document.getElementById('image-preview');
@@ -635,11 +630,12 @@ async function createPost() {
             showToast('Post publicado! 🎉', 'success');
             loadPosts();
         } else if (res.status === 400) {
-            showToast('Post contém conteúdo inapropriado!', 'error');
-        } else if  (res.status === 403) {
+            showToast('Post contém conteúdo inapropriado! ⚠️', 'error');
+        } else if (res.status === 403) {
             showToast('Links não são permitidos nos posts! 🔗', 'error');
-}
-         else {
+        } else if (res.status === 429) {
+            showToast('Aguarde antes de postar novamente! ⏳', 'warning');
+        } else {
             showToast('Erro ao publicar post', 'error');
         }
     } catch { showToast('Erro ao publicar post', 'error'); }
