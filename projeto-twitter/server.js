@@ -80,7 +80,7 @@ app.post('/login-register', async (req, res) => {
     const { username, password } = req.body;
     const db = readDB();
     let user = db.users.find(u => u.username === username);
-    
+
      if (!user) {
         const erroSenha = validarSenha(password);
         if (erroSenha) {
@@ -150,6 +150,61 @@ function validarSenha(password) {
     return null; // senha válida
 }
 
+// Cadastro
+app.post('/register', (req, res) => {
+    const { username, password } = req.body;
+    const db = readDB();
+
+    const userExiste = db.users.find(u => u.username === username);
+    if (userExiste) {
+        return res.status(409).json({ error: 'Usuário já existe!' });
+    }
+
+    const erroSenha = validarSenha(password);
+    if (erroSenha) {
+        return res.status(400).json({ error: erroSenha });
+    }
+
+    const hashedPassword = bcrypt.hashSync(password, 10);
+    const newUser = {
+        id: Date.now().toString(),
+        username,
+        password: hashedPassword,
+        avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${username}`,
+        coverImage: '',
+        bio: '✨ Novo no Tiwitter!',
+        location: '',
+        website: '',
+        joinDate: new Date().toISOString(),
+        following: [],
+        followers: [],
+    };
+
+    db.users.push(newUser);
+    writeDB(db);
+
+    const { password: _, ...userSemSenha } = newUser;
+    res.json({ user: userSemSenha });
+});
+
+// Login
+app.post('/login', (req, res) => {
+    const { username, password } = req.body;
+    const db = readDB();
+
+    const user = db.users.find(u => u.username === username);
+    if (!user) {
+        return res.status(404).json({ error: 'Usuário não encontrado!' });
+    }
+
+    const senhaCorreta = bcrypt.compareSync(password, user.password);
+    if (!senhaCorreta) {
+        return res.status(401).json({ error: 'Senha incorreta!' });
+    }
+
+    const { password: _, ...userSemSenha } = user;
+    res.json({ user: userSemSenha });
+});
 //=================================
 // GIPHY API
 //=================================
