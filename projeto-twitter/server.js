@@ -54,6 +54,24 @@ function broadcastUpdate(type, data) {
     });
 }
 
+//Controle de spam
+const spamControl = new Map(); 
+
+function verificarSpam(userId, tipo, intervaloMs = 3000) {
+    const chave = `${userId}-${tipo}`;
+    const agora = Date.now();
+    const ultimo = spamControl.get(chave) || 0;
+
+    if (agora - ultimo < intervaloMs) {
+        return true; // é spam
+    }
+
+    spamControl.set(chave, agora);
+    return false; // não é spam
+}
+
+
+
 const bcrypt = require('bcrypt');
 const SALT_ROUNDS = 10;
 
@@ -340,6 +358,10 @@ app.get('/posts/user/:userId', (req, res) => {
 app.post('/posts', (req, res) => {
     const { userId, username, avatar, content, imageUrl } = req.body; // ← só uma vez
 
+      if (verificarSpam(userId, 'post', 10000)) { // 10 segundos entre posts
+        return res.status(429).json({ error: 'Aguarde antes de postar novamente!' });
+    }
+
     if (contemPalavrasProibidas(content)) {
         return res.status(400).json({ error: 'Post contém conteúdo inapropriado!' });
     }
@@ -525,6 +547,10 @@ app.post('/posts/retweet', (req, res) => {
 
 app.post('/posts/comment', (req, res) => {
     const { postId, userId, username, avatar, content } = req.body;
+
+    if (verificarSpam(userId, 'comment', 5000)) { // 5 segundos entre comentários
+    return res.status(429).json({ error: 'Aguarde antes de comentar novamente!' });
+    }
 
     if (contemPalavrasProibidas(content)) {
         return res.status(400).json({ error: 'Comentário contém conteúdo inapropriado!' });
@@ -728,7 +754,10 @@ app.get('/messages/:userId/:otherUserId', (req, res) => {
 
 app.post('/messages', (req, res) => {
     const { from, to, content } = req.body;
-
+    
+    if (verificarSpam(from, 'message', 2000)) { // 2 segundos entre mensagens
+        return res.status(429).json({ error: 'Aguarde antes de enviar outra mensagem!' });
+    }
     if (contemPalavrasProibidas(content)) {
         return res.status(400).json({ error: 'Mensagem contém conteúdo inapropriado!' });
     }

@@ -607,7 +607,10 @@ async function createPost() {
     if (currentImageFile) {
         try { imageUrl = await fileToBase64(currentImageFile); }
         catch { showToast('Erro ao processar imagem', 'error'); return; }
-    }
+    } else if (res.status === 429) {
+    showToast('Aguarde antes de postar novamente! ⏳', 'warning');
+}
+    
 
     try {
         const res = await fetch(`${API_URL}/posts`, {
@@ -877,6 +880,8 @@ async function addComment(postId) {
             showToast('Comentário contém conteúdo inapropriado! ⚠️', 'error');
         } else if (res.status === 403) {
     showToast('Links não são permitidos nos comentários! 🔗', 'error');
+} else if (res.status === 429) {
+    showToast('Aguarde antes de comentar novamente! ⏳', 'warning');
 }
     } catch { /* silent */ }
 }
@@ -1407,6 +1412,8 @@ async function sendMessage() {
             showToast('Mensagem contém conteúdo inapropriado! ⚠️', 'error');
         } else if (res.status === 403) {
     showToast('Links não são permitidos nas mensagens! 🔗', 'error');
+} else if (res.status === 429) {
+    showToast('Aguarde antes de enviar outra mensagem! ⏳', 'warning');
 }
     } catch { /* silent */ }
 }
