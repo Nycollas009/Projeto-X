@@ -17,33 +17,31 @@
 
 
     <!-- ══ LOGIN SCREEN ══ -->
-   
-<div id="login-container">
-    <div id="login-screen">
-        <div class="login-logo-wrapper">
-            <img src="logo.png" alt="Logo do Tiwitter" style="width:130%; height:140px;">
-        </div>
-        <h1></h1>
-        <p>Conecte-se com o mundo de forma inovadora</p>
-        <div class="login-form">
-            <input type="text" id="username" placeholder="Nome de usuário" autocomplete="off">
-            <div class="password-input-wrapper">
-                <input type="password" id="password" placeholder="Senha">
-                <i class="fas fa-eye toggle-password" id="toggle-password"></i>
+    <div id="login-container">
+        <div id="login-screen">
+            <div class="login-logo-wrapper">
+            
+                <img src="logo.png" alt="Logo do Tiwitter" style="width:130%; height:140px;">
+               
             </div>
-            <small style="color:var(--text-muted);font-size:0.75rem;margin-top:-8px;display:block;line-height:1.6;">
-                6 a 20 caracteres · uma maiúscula · um número · um caractere especial
-            </small>
-            <button class="btn-primary" id="register-btn">
-                <i class="fas fa-user-plus"></i> Cadastrar
-            </button>
-            <button class="btn-secondary-login" id="login-btn">
-                <i class="fas fa-arrow-right"></i> Entrar
-            </button>
+            <h1></h1>
+            <p>Conecte-se com o mundo de forma inovadora</p>
+            <div class="login-form">
+                <input type="text" id="username" placeholder="Nome de usuário" autocomplete="off">
+                <div class="password-input-wrapper">
+                    <input type="password" id="password" placeholder="Senha">
+                    <small style="color:var(--text-muted);font-size:0.75rem;margin-top: 1px;display:block;">
+                        Entre 6 e 20 caracteres| um maiúsculo | um número | um símbolo
+                    </small>
+                    <i class="fas fa-eye toggle-password" id="toggle-password"></i>
+                </div>
+                <button class="btn-primary" id="login-btn">
+                    <i class="fas fa-arrow-right"></i> Entrar / Criar conta
+                </button>
+            </div>
         </div>
     </div>
-</div>
-<div id="bg-effect"></div>
+    <div id="bg-effect"></div>
 
     
     <!-- ══ MAIN APP ══ -->

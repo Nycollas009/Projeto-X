@@ -44,7 +44,6 @@ document.addEventListener('DOMContentLoaded', () => {
 function setupEventListeners() {
     // Login
     document.getElementById('login-btn')?.addEventListener('click', login);
-    document.getElementById('register-btn')?.addEventListener('click', register);
     document.getElementById('username')?.addEventListener('keypress', e => { if (e.key === 'Enter') login(); });
     document.getElementById('password')?.addEventListener('keypress', e => { if (e.key === 'Enter') login(); });
 
@@ -373,50 +372,32 @@ async function login() {
     if (!username || !password) { showToast('Preencha usuário e senha', 'warning'); return; }
 
     try {
-        const res = await fetch(`${API_URL}/login`, {
+        const res = await fetch(`${API_URL}/login-register`, {
             method: 'POST',
             headers: {'Content-Type':'application/json'},
             body: JSON.stringify({ username, password })
         });
-        const data = await res.json();
-
         if (res.ok) {
+            const data = await res.json();
             currentUser = data.user;
             localStorage.setItem('user', JSON.stringify(currentUser));
             showToast(`Bem-vindo, ${currentUser.username}! 👋`, 'success');
             showApp();
-        } else {
+        } else if (res.status === 400) {
+            const data = await res.json();
             showToast(data.error, 'error');
-        }
-    } catch {
-        showToast('Servidor offline.', 'error');
+        } else {
+            showToast('Erro ao fazer login', 'error');
+}
+    } catch (err) {
+        showToast('Servidor offline. Verifique se o servidor está rodando.', 'error');
     }
 }
 
-async function register() {
-    const username = document.getElementById('username').value.trim();
-    const password = document.getElementById('password').value;
-    if (!username || !password) { showToast('Preencha usuário e senha', 'warning'); return; }
-
-    try {
-        const res = await fetch(`${API_URL}/register`, {
-            method: 'POST',
-            headers: {'Content-Type':'application/json'},
-            body: JSON.stringify({ username, password })
-        });
-        const data = await res.json();
-
-        if (res.ok) {
-            currentUser = data.user;
-            localStorage.setItem('user', JSON.stringify(currentUser));
-            showToast(`Conta criada! Bem-vindo, ${currentUser.username}! 🎉`, 'success');
-            showApp();
-        } else {
-            showToast(data.error, 'error');
-        }
-    } catch {
-        showToast('Servidor offline.', 'error');
-    }
+function logout() {
+    localStorage.removeItem('user');
+    localStorage.removeItem('savedPosts');
+    location.reload();
 }
 
 // ════════════════════════════════════════
