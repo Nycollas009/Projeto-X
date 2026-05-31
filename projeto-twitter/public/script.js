@@ -1111,24 +1111,10 @@ async function updateProfile() {
 
     // Avatar
     let avatar = document.getElementById('edit-avatar-url')?.value;
-const avatarFile = document.getElementById('edit-avatar-file');
-if (avatarFile?.files[0]) {
-    if (avatarFile.files[0].size > 5 * 1024 * 1024) {
-        showToast('Imagem muito grande. Máximo 5MB.', 'error');
-        return;
+    const avatarFile = document.getElementById('edit-avatar-file');
+    if (avatarFile?.files[0]) {
+        avatar = await fileToBase64(avatarFile.files[0]);
     }
-    avatar = await fileToBase64(avatarFile.files[0]);
-}
-
-// Capa
-const coverFile = document.getElementById('edit-cover-file');
-if (coverFile?.files[0]) {
-    if (coverFile.files[0].size > 5 * 1024 * 1024) {
-        showToast('Imagem de capa muito grande. Máximo 5MB.', 'error');
-        return;
-    }
-    coverImage = await fileToBase64(coverFile.files[0]);
-}
 
     // Capa
     let coverImage = document.getElementById('edit-cover-url')?.value;
