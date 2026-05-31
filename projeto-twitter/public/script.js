@@ -605,10 +605,10 @@ async function createPost() {
         return;
     }
 
-    if (currentImageFile) {
-        try { imageUrl = await fileToBase64(currentImageFile); }
-        catch { showToast('Erro ao processar imagem', 'error'); return; }
-    }
+   if (currentImageFile) {
+    try { imageUrl = await comprimirImagem(currentImageFile, 1200, 0.7); }
+    catch { showToast('Erro ao processar imagem', 'error'); return; }
+}
 
     try {
         const res = await fetch(`${API_URL}/posts`, {
@@ -1109,24 +1109,16 @@ async function updateProfile() {
     const location = document.getElementById('edit-location')?.value;
     const website  = document.getElementById('edit-website')?.value;
 
-   // Avatar
+// Avatar
 const avatarFile = document.getElementById('edit-avatar-file');
 if (avatarFile?.files[0]) {
-    if (avatarFile.files[0].size > 5 * 1024 * 1024) {
-        showToast('Imagem muito grande. Máximo 5MB.', 'error');
-        return;
-    }
-    avatar = await fileToBase64(avatarFile.files[0]);
+    avatar = await comprimirImagem(avatarFile.files[0], 400, 0.8);
 }
 
 // Capa
 const coverFile = document.getElementById('edit-cover-file');
 if (coverFile?.files[0]) {
-    if (coverFile.files[0].size > 5 * 1024 * 1024) {
-        showToast('Imagem de capa muito grande. Máximo 5MB.', 'error');
-        return;
-    }
-    coverImage = await fileToBase64(coverFile.files[0]);
+    coverImage = await comprimirImagem(coverFile.files[0], 1200, 0.7);
 }
 
     // Capa
@@ -1150,6 +1142,64 @@ if (coverFile?.files[0]) {
             loadProfileData(currentUser.id);
         }
     } catch { showToast('Erro ao atualizar perfil', 'error'); }
+}
+
+async function comprimirImagem(file, maxWidth = 1200, qualidade = 0.7) {
+    return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                let width  = img.width;
+                let height = img.height;
+
+                if (width > maxWidth) {
+                    height = (height * maxWidth) / width;
+                    width  = maxWidth;
+                }
+
+                canvas.width  = width;
+                canvas.height = height;
+
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+
+                resolve(canvas.toDataURL('image/jpeg', qualidade));
+            };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    });
+}
+
+async function comprimirImagem(file, maxWidth = 1200, qualidade = 0.7) {
+    return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                let width  = img.width;
+                let height = img.height;
+
+                if (width > maxWidth) {
+                    height = (height * maxWidth) / width;
+                    width  = maxWidth;
+                }
+
+                canvas.width  = width;
+                canvas.height = height;
+
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+
+                resolve(canvas.toDataURL('image/jpeg', qualidade));
+            };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    });
 }
 // ════════════════════════════════════════
 //  SEARCH & EXPLORE
