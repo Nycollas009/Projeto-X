@@ -1109,23 +1109,18 @@ async function updateProfile() {
     const location = document.getElementById('edit-location')?.value;
     const website  = document.getElementById('edit-website')?.value;
 
-// Avatar
-const avatarFile = document.getElementById('edit-avatar-file');
-if (avatarFile?.files[0]) {
-    avatar = await comprimirImagem(avatarFile.files[0], 400, 0.8);
-}
-
-// Capa
-const coverFile = document.getElementById('edit-cover-file');
-if (coverFile?.files[0]) {
-    coverImage = await comprimirImagem(coverFile.files[0], 1200, 0.7);
-}
+    // Avatar
+    let avatar = document.getElementById('edit-avatar-url')?.value;
+    const avatarFile = document.getElementById('edit-avatar-file');
+    if (avatarFile?.files[0]) {
+        avatar = await comprimirImagem(avatarFile.files[0], 400, 0.8);
+    }
 
     // Capa
     let coverImage = document.getElementById('edit-cover-url')?.value;
     const coverFile = document.getElementById('edit-cover-file');
     if (coverFile?.files[0]) {
-        coverImage = await fileToBase64(coverFile.files[0]);
+        coverImage = await comprimirImagem(coverFile.files[0], 1200, 0.7);
     }
 
     try {
