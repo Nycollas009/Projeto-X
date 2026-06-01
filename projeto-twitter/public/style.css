@@ -238,6 +238,10 @@ body.large-text { font-size: 130%; }
     color: #fff;
 }
 
+#user-stats-card {
+    user-select: none;
+}
+
 #login-screen h1 {
     font-size: 2rem;
     font-weight: 800;
