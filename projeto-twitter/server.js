@@ -272,12 +272,11 @@ app.patch('/users/:id', (req, res) => {
     const { avatar, coverImage, bio, location, website } = req.body;
     const db = readDB();
     const userIndex = db.users.findIndex(u => u.id === id);
-    const { avatar, coverImage, bio, location, website } = req.body;
 
     if (website && urlBloqueada(website)) {
         return res.status(400).json({ error: 'Este site não é permitido no perfil!' });
-        }
-        
+    }
+
     if (userIndex !== -1) {
         if (avatar !== undefined) db.users[userIndex].avatar = avatar;
         if (coverImage !== undefined) db.users[userIndex].coverImage = coverImage;
