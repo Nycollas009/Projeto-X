@@ -1623,42 +1623,55 @@ function openSettingsModal() {
                 <i class="fas fa-cog" style="color:var(--primary);margin-right:10px;"></i>Configurações
             </h2>
             <div class="settings-section">
-    <h3>Tema</h3>
-    <button class="btn-secondary-sm ${localStorage.getItem('tema') === 'padrao' || !localStorage.getItem('tema') ? 'active' : ''}" 
-            onclick="mudarTema('padrao')">🟣 Padrão</button>
-    <button class="btn-secondary-sm ${localStorage.getItem('tema') === 'escuro' ? 'active' : ''}" 
-            onclick="mudarTema('escuro')">⚫ Escuro</button>
-    <button class="btn-secondary-sm ${localStorage.getItem('tema') === 'claro' ? 'active' : ''}" 
-            onclick="mudarTema('claro')">⚪ Claro</button>
-</div>
-<div class="settings-section">
-    <h3>Acessibilidade</h3>
-    <button class="btn-secondary-sm" onclick="toggleHighContrast()">Alto Contraste</button>
-    <button class="btn-secondary-sm" onclick="toggleLargeText()">Texto Grande</button>
-    <button class="btn-secondary-sm" onclick="resetAccessibility()">Resetar</button>
-</div>
+                <h3>Tema</h3>
+                <button class="btn-secondary-sm" onclick="confirmarBotao(this, () => mudarTema('padrao'))">🟣 Padrão</button>
+                <button class="btn-secondary-sm" onclick="confirmarBotao(this, () => mudarTema('escuro'))">⚫ Escuro</button>
+                <button class="btn-secondary-sm" onclick="confirmarBotao(this, () => mudarTema('claro'))">⚪ Claro</button>
+            </div>
+            <div class="settings-section">
+                <h3>Acessibilidade</h3>
+                <button class="btn-secondary-sm" onclick="confirmarBotao(this, toggleHighContrast)">Alto Contraste</button>
+                <button class="btn-secondary-sm" onclick="confirmarBotao(this, toggleLargeText)">Texto Grande</button>
+                <button class="btn-secondary-sm" onclick="confirmarBotao(this, resetAccessibility)">Resetar</button>
+            </div>
             <div class="settings-section">
                 <h3>Sidebar</h3>
-                <button class="btn-secondary-sm" onclick="toggleSidebar();showToast('Sidebar alternada','info')">
-                    <i class="fas fa-sidebar"></i> Expandir/Recolher
-                </button>
+                <button class="btn-secondary-sm" onclick="confirmarBotao(this, toggleSidebar)">Expandir/Recolher</button>
             </div>
             <div class="settings-section">
                 <h3>Sobre</h3>
                 <p style="font-size:0.88rem;color:var(--text-secondary);line-height:1.6;">
                     <strong style="color:var(--text);">Tiwitter Social v2.0</strong><br>
-                    Conecte-se com o mundo de forma inovadora.<br>
-                    Projeto acadêmico — design premium.
+                    Conecte-se com o mundo de forma inovadora.
                 </p>
             </div>
         </div>`;
+
     document.body.appendChild(modal);
     modal.querySelector('#close-settings').addEventListener('click', () => modal.remove());
     modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
 }
 
+function confirmarBotao(btn, callback) {
+    callback(); // executa a ação
 
+    const textoOriginal = btn.innerHTML;
+    const bgOriginal    = btn.style.background;
 
+    btn.style.background   = '#10b981';
+    btn.style.color        = '#fff';
+    btn.style.boxShadow    = '0 4px 20px rgba(16,185,129,0.4)';
+    btn.style.borderColor  = '#10b981';
+    btn.innerHTML          = '<i class="fas fa-check"></i> Aplicado!';
+
+    setTimeout(() => {
+        btn.style.background  = bgOriginal;
+        btn.style.color       = '';
+        btn.style.boxShadow   = '';
+        btn.style.borderColor = '';
+        btn.innerHTML         = textoOriginal;
+    }, 2000);
+}
 // ========== mudar tema =============
 
 function mudarTema(tema) {
