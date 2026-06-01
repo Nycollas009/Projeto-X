@@ -155,21 +155,61 @@ function validarSenha(password) {
 const dominiosBloqueados = [
     // Pornografia
     'pornhub', 'xvideos', 'xnxx', 'xhamster', 'redtube', 'youporn',
-    'brazzers', 'onlyfans', 'privacy', 'chaturbate', 'cam4',
-    'livejasmin', 'bongacams', 'stripchat', 'myfreecams',
-    'spankbang', 'eporner', 'tube8', 'drtuber', 'tnaflix',
-    'porntrex', 'anyporn', 'beeg', 'txxx', 'hclips',
+    'brazzers', 'onlyfans', 'chaturbate', 'cam4', 'livejasmin',
+    'bongacams', 'stripchat', 'myfreecams', 'spankbang', 'eporner',
+    'tube8', 'drtuber', 'tnaflix', 'porntrex', 'anyporn', 'beeg',
+    'txxx', 'hclips', 'porn', 'sex', 'xxx', 'adult', 'erotic',
+    'nudes', 'lewd', 'hentai', 'rule34', 'gelbooru', 'danbooru',
+    'e621', 'nhentai', 'hanime', 'xgroovy', 'xmasters', 'fuq',
+    'porndig', 'ok', 'javhd', 'jav', 'javmost', 'javbus',
+    'asiansex', 'asianporn', 'asianhd', 'sex8', 'sexvid',
+    'sexix', 'sextu', 'sexyoutube', 'camwhores', 'camvideos',
+    'camcrush', 'camdolls', 'camsoda', 'fansly', 'manyvids',
+    'clips4sale', 'naughtyamerica', 'realitykings', 'mofos',
+    'bangbros', 'digitalplayground', 'elegantangel', 'wicked',
+    'vivid', 'hustler', 'penthouse', 'playboy', 'met-art',
 
     // Gore e violência extrema
     'liveleak', 'bestgore', 'goregrish', 'rotten', 'ogrish',
-    'watchpeoplediee', 'nowthisisfuckedup', 'theync',
+    'watchpeoplediee', 'nowthisisfuckedup', 'theync', 'kaotic',
+    'deadhouse', 'documenting', 'crazyshit', 'shockgore',
+    'gorezone', 'uncoverreality', 'morbidreality', 'sickipedia',
+    'stileproject', 'efukt', 'thechainsawresistance',
 
-    // Sites ilegais / pirataria
+    // Drogas e substâncias ilegais
+    'silkroad', 'darkweb', 'deepweb', 'drugs', 'buycocaine',
+    'buyweed', 'onlinecocaine', 'drugsforum', 'shroomery',
+    'bluelight', 'drugbuyersguide', 'heroin', 'methamphetamine',
+
+    // Armas ilegais
+    'gunbroker', 'buyguns', 'ghostgunner', 'weaponsmarket',
+    'illegalweapons', 'buyammo', 'darknetguns',
+
+    // Pirataria
     'thepiratebay', 'kickass', 'rarbg', '1337x', 'nyaa',
-    'fmovies', 'gomovies', 'putlocker', '123movies',
+    'fmovies', 'gomovies', 'putlocker', '123movies', 'solarmovie',
+    'yesmovies', 'lookmovie', 'soap2day', 'movies123', 'azmovies',
+    'cmovies', 'bmovies', 'hdmovie', 'torrentz', 'torrent',
+    'piratebay', 'limetorrents', 'zooqle', 'magnetdl',
+    'torrentseed', 'skidrowreloaded', 'fitgirl', 'oceanofgames',
+    'steamunlocked', 'igg-games', 'crackwatch', 'repacklab',
 
-    // Apostas e jogos ilegais
-    'bet365', 'sportingbet', 'pixbet', 'betano',
+    // Apostas ilegais
+    'bet365', 'sportingbet', 'pixbet', 'betano', 'betfair',
+    'williamhill', 'ladbrokes', 'paddy', 'unibet', 'bwin',
+    '888sport', 'betway', 'draftkings', 'fanduel', 'bovada',
+    'betonline', 'mybookie', 'xbet', 'betus', 'jazzsports',
+
+    // Sites de ódio e extremismo
+    'stormfront', 'dailystormer', 'therightstuff', 'vanguardnews',
+    'occidentaldissent', 'amren', 'radixjournal', 'counter-currents',
+    'unz', 'infostormer', 'neonrevolt', 'kiwifarms',
+    'gab', 'voat', 'poal', 'wimkin', 'mewe',
+
+    // Scam e phishing comuns
+    'bit.ly/free', 'tinyurl/win', 'clickbait', 'earnmoney',
+    'makemoneyfast', 'getrichquick', 'freebitcoin', 'cryptoscam',
+    'nftscam', 'ponzi', 'pyramidscheme',
 ];
 
 function urlBloqueada(url) {
@@ -389,8 +429,7 @@ const palavrasProibidas = [// Palavrões gerais
     'sua vez de calar', 'cala boca mulher',
     'fresca', 'pirua', 'vaca',
     'galinha', 'rapariga',
-    'mulher é objeto', 'mulher é propriedade',
-
+    'mulher é objeto', 'mulher é propriedade', 'vadia', 'vagabunda', 'piranha', 'putinha', 'safada', 'safada', 'saf4da','putiane', ' sua puta',
     // Racistas
     'macaco', 'macacada',
     'nego', 'nega', 'neguinho',
