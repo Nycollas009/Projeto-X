@@ -1129,13 +1129,28 @@ async function updateProfile() {
             headers: {'Content-Type':'application/json'},
             body: JSON.stringify({ avatar, coverImage, bio, location, website })
         });
-        if (res.ok) {
-            currentUser = await res.json();
-            localStorage.setItem('user', JSON.stringify(currentUser));
-            showToast('Perfil atualizado! ✅', 'success');
-            updateUI();
-            loadProfileData(currentUser.id);
-        }
+       if (res.ok) {
+    currentUser = await res.json();
+    localStorage.setItem('user', JSON.stringify(currentUser));
+    showToast('Perfil atualizado! ✅', 'success');
+    updateUI();
+
+    // Muda o botão para verde
+    const btn = document.querySelector('.edit-profile-section .btn-primary-sm');
+    if (btn) {
+        btn.style.background = '#10b981';
+        btn.style.boxShadow  = '0 4px 20px rgba(16,185,129,0.4)';
+        btn.innerHTML = '<i class="fas fa-check"></i> Salvo!';
+        
+        setTimeout(() => {
+            btn.style.background = '';
+            btn.style.boxShadow  = '';
+            btn.innerHTML = '<i class="fas fa-save"></i> Salvar Alterações';
+        }, 3000);
+    }
+
+    loadProfileData(currentUser.id);
+}
     } catch { showToast('Erro ao atualizar perfil', 'error'); }
 }
 
