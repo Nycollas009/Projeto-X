@@ -151,6 +151,35 @@ function validarSenha(password) {
     return null; // senha válida
 }
 
+// Bloquear sites impróprios (pornografia, gore, pirataria, apostas ilegais, etc)
+const dominiosBloqueados = [
+    // Pornografia
+    'pornhub', 'xvideos', 'xnxx', 'xhamster', 'redtube', 'youporn',
+    'brazzers', 'onlyfans', 'privacy', 'chaturbate', 'cam4',
+    'livejasmin', 'bongacams', 'stripchat', 'myfreecams',
+    'spankbang', 'eporner', 'tube8', 'drtuber', 'tnaflix',
+    'porntrex', 'anyporn', 'beeg', 'txxx', 'hclips',
+
+    // Gore e violência extrema
+    'liveleak', 'bestgore', 'goregrish', 'rotten', 'ogrish',
+    'watchpeoplediee', 'nowthisisfuckedup', 'theync',
+
+    // Sites ilegais / pirataria
+    'thepiratebay', 'kickass', 'rarbg', '1337x', 'nyaa',
+    'fmovies', 'gomovies', 'putlocker', '123movies',
+
+    // Apostas e jogos ilegais
+    'bet365', 'sportingbet', 'pixbet', 'betano',
+];
+
+function urlBloqueada(url) {
+    if (!url) return false;
+    const urlLower = url.toLowerCase();
+    return dominiosBloqueados.some(dominio => urlLower.includes(dominio));
+}
+
+
+
 //=================================
 // GIPHY API
 //=================================
@@ -243,7 +272,12 @@ app.patch('/users/:id', (req, res) => {
     const { avatar, coverImage, bio, location, website } = req.body;
     const db = readDB();
     const userIndex = db.users.findIndex(u => u.id === id);
+    const { avatar, coverImage, bio, location, website } = req.body;
 
+    if (website && urlBloqueada(website)) {
+        return res.status(400).json({ error: 'Este site não é permitido no perfil!' });
+        }
+        
     if (userIndex !== -1) {
         if (avatar !== undefined) db.users[userIndex].avatar = avatar;
         if (coverImage !== undefined) db.users[userIndex].coverImage = coverImage;
