@@ -1149,18 +1149,15 @@ async function updateProfile() {
         }, 3000);
     }
 
-     else if (res.status === 400) {
+loadProfileData(currentUser.id);
+} else if (res.status === 400) {
     const data = await res.json();
     showToast(data.error, 'error');
 } else {
     showToast('Erro ao atualizar perfil', 'error');
 }
-
-    loadProfileData(currentUser.id);
-}
     } catch { showToast('Erro ao atualizar perfil', 'error'); }
 }
-
 async function comprimirImagem(file, maxWidth = 1200, qualidade = 0.7) {
     return new Promise((resolve) => {
         const reader = new FileReader();
