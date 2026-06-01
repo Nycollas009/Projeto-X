@@ -1246,9 +1246,10 @@ async function searchUsers() {
             // Busca usuários por nome
             const res   = await fetch(`${API_URL}/users`);
             const users = await res.json();
+            const termLimpo = term.startsWith('@') ? term.slice(1) : term;
             const found = users.filter(u => 
-                u.username.toLowerCase().includes(term) && u.id !== currentUser.id
-            );
+    u.username.toLowerCase().includes(termLimpo) && u.id !== currentUser.id
+);
 
             results.innerHTML = found.length
                 ? found.map(u => `
