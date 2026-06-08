@@ -379,6 +379,12 @@ function insertAtCursor(el, text) {
 // ════════════════════════════════════════
 //  AUTH
 // ════════════════════════════════════════
+function logout() {
+    localStorage.removeItem('user');
+    localStorage.removeItem('savedPosts');
+    location.reload();
+}
+
 function mostrarTela(id) {
     document.querySelectorAll('.tela-login').forEach(t => t.classList.remove('active'));
     document.getElementById(id)?.classList.add('active');

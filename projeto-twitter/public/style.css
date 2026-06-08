@@ -216,10 +216,10 @@ body.large-text { font-size: 130%; }
 
 
 .login-logo-wrapper {
-    width: 50%;
-    height: auto;
+    width: 80px;
+    height: 80px;
     border-radius: 50%;
-    background: rgb(23, 52, 105); /*parte de dentro da logo de login */
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
     display: flex;
     align-items: center;
     justify-content: center;
