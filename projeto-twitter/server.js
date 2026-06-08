@@ -8,9 +8,7 @@ const path = require('path');
 const app    = express();
 const server = http.createServer(app); 
 const port   = process.env.PORT || 3000;
-server.listen(port, '0.0.0.0', () => {
-    console.log(`Servidor rodando na porta ${port}`);
-});
+
 
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
@@ -72,84 +70,118 @@ function verificarSpam(userId, tipo, intervaloMs = 3000) {
 }
 
 
-
 const bcrypt = require('bcrypt');
-const SALT_ROUNDS = 10;
-
-// == AUTENTICAÇÃO ==
-app.post('/login-register', async (req, res) => {
-    const { username, password } = req.body;
-    const db = readDB();
-    let user = db.users.find(u => u.username === username);
-    
-     if (!user) {
-        const erroSenha = validarSenha(password);
-        if (erroSenha) {
-            return res.status(400).json({ error: erroSenha });
-        }
-    }
-    if (password.length < 6) {
-        return res.status(400).json({ error: 'A senha deve ter no mínimo 6 caracteres!' });
-    }
-
-    if (password.length > 20) {
-        return res.status(400).json({ error: 'A senha deve ter no máximo 20 caracteres!' });
-    }
-    if (user) {
-       
-        const passwordMatch = await bcrypt.compare(password, user.password);
-        if (!passwordMatch) {
-            return res.status(401).json({ message: "Senha incorreta para este usuário!" });
-        }
-
-        console.log(`🔑 Usuário logado: ${username}`);
-    }
-
-    else {
-       
-        const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
-
-        user = {
-            id: Date.now().toString(),
-            username,
-            password: hashedPassword, // 👈 salva o hash, nunca o texto puro
-            avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${username}`,
-            coverImage: `https://picsum.photos/1200/300?random=${Date.now()}`,
-            bio: "✨ Bem-vindo ao Tiwitter Social! Conecte-se com o mundo.",
-            location: "🌍 Planeta Terra",
-            website: "",
-            joinDate: new Date().toISOString(),
-            following: [],
-            followers: [],
-            likedPosts: []
-        };
-        db.users.push(user);
-        writeDB(db);
-        console.log(`📝 Novo usuário criado: ${username}`);
-    }
-
-    const { password: _, ...userWithoutPassword } = user;
-    res.json({ user: userWithoutPassword });
-});
 
 function validarSenha(password) {
-    if (password.length < 6) {
+    if (password.length < 6)
         return 'A senha deve ter no mínimo 6 caracteres!';
-    }
-    if (password.length > 20) {
+    if (password.length > 20)
         return 'A senha deve ter no máximo 20 caracteres!';
-    }
-    if (!/[A-Z]/.test(password)) {
+    if (!/[A-Z]/.test(password))
         return 'A senha deve ter pelo menos uma letra maiúscula!';
-    }
-    if (!/[0-9]/.test(password)) {
+    if (!/[0-9]/.test(password))
         return 'A senha deve ter pelo menos um número!';
-    }
-    if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) {
+    if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password))
         return 'A senha deve ter pelo menos um caractere especial (!@#$%...)!';
-    }
-    return null; // senha válida
+    return null;
 }
+
+function validarCadastro(dados) {
+    const { username, password, email, nomeCompleto, telefone, dataNascimento } = dados;
+
+    if (!username || username.length < 3)
+        return 'Nome de usuário deve ter no mínimo 3 caracteres!';
+    if (!nomeCompleto || nomeCompleto.trim().split(' ').length < 2)
+        return 'Digite seu nome completo!';
+    if (!email || !email.includes('@'))
+        return 'Email inválido!';
+    if (!telefone || telefone.replace(/\D/g, '').length < 10)
+        return 'Telefone inválido!';
+    if (!dataNascimento)
+        return 'Data de nascimento obrigatória!';
+
+    const nascimento = new Date(dataNascimento);
+    const hoje = new Date();
+    let idade = hoje.getFullYear() - nascimento.getFullYear();
+    const aniversarioPassou = (
+        hoje.getMonth() > nascimento.getMonth() ||
+        (hoje.getMonth() === nascimento.getMonth() && hoje.getDate() >= nascimento.getDate())
+    );
+    if (!aniversarioPassou) idade--;
+    if (idade < 18)
+        return 'Você precisa ter 18 anos ou mais para se cadastrar!';
+
+    const erroSenha = validarSenha(password);
+    if (erroSenha) return erroSenha;
+
+    return null;
+}
+
+// CADASTRO
+app.post('/register', async (req, res) => {
+    const { username, password, email, nomeCompleto, telefone, dataNascimento, termoAceito } = req.body;
+
+    if (!termoAceito)
+        return res.status(400).json({ error: 'Você precisa aceitar os Termos de Uso!' });
+
+    const erro = validarCadastro({ username, password, email, nomeCompleto, telefone, dataNascimento });
+    if (erro) return res.status(400).json({ error: erro });
+
+    const db = readDB();
+
+    if (db.users.find(u => u.username === username))
+        return res.status(409).json({ error: 'Nome de usuário já existe!' });
+
+    if (db.users.find(u => u.email === email))
+        return res.status(409).json({ error: 'Email já cadastrado!' });
+
+    const newUser = {
+        id:             Date.now().toString(),
+        username,
+        password:       bcrypt.hashSync(password, 10),
+        email:          email.toLowerCase(),
+        nomeCompleto:   nomeCompleto.trim(),
+        telefone:       telefone.replace(/\D/g, ''),
+        dataNascimento: dataNascimento,
+        termoAceito:    true,
+        termoAceitoEm:  new Date().toISOString(),
+        avatar:         `https://api.dicebear.com/7.x/avataaars/svg?seed=${username}`,
+        coverImage:     '',
+        bio:            '✨ Novo no Tiwitter!',
+        location:       '',
+        website:        '',
+        joinDate:       new Date().toISOString(),
+        following:      [],
+        followers:      [],
+    };
+
+    db.users.push(newUser);
+    writeDB(db);
+
+    const { password: _, telefone: __, ...userPublico } = newUser;
+    res.json({ user: userPublico });
+});
+
+// LOGIN
+app.post('/login', async (req, res) => {
+    const { username, password } = req.body;
+    const db = readDB();
+
+    const user = db.users.find(u =>
+        u.username === username || u.email === username
+    );
+
+    if (!user)
+        return res.status(404).json({ error: 'Usuário não encontrado!' });
+
+    const senhaCorreta = bcrypt.compareSync(password, user.password);
+    if (!senhaCorreta)
+        return res.status(401).json({ error: 'Senha incorreta!' });
+
+    const { password: _, telefone: __, ...userPublico } = user;
+    res.json({ user: userPublico });
+});
+
 
 // Bloquear sites impróprios (pornografia, gore, pirataria, apostas ilegais, etc)
 const dominiosBloqueados = [
@@ -666,7 +698,7 @@ app.post('/posts/retweet', (req, res) => {
                 db.notifications.push(notification);
             }
         }
-        h
+        
         writeDB(db);
         
         try {

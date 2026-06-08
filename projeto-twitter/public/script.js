@@ -44,12 +44,25 @@ document.addEventListener('DOMContentLoaded', () => {
 function setupEventListeners() {
     // Login
     document.getElementById('login-btn')?.addEventListener('click', login);
-    document.getElementById('username')?.addEventListener('keypress', e => { if (e.key === 'Enter') login(); });
-    document.getElementById('password')?.addEventListener('keypress', e => { if (e.key === 'Enter') login(); });
+document.getElementById('register-btn')?.addEventListener('click', register);
 
-    // Show/hide password toggle
-    document.getElementById('toggle-password')?.addEventListener('click', togglePassword);
+// Toggle senha login
+document.getElementById('toggle-login-password')?.addEventListener('click', () => {
+    const input = document.getElementById('login-password');
+    const icon  = document.getElementById('toggle-login-password');
+    input.type  = input.type === 'password' ? 'text' : 'password';
+    icon.classList.toggle('fa-eye');
+    icon.classList.toggle('fa-eye-slash');
+});
 
+// Toggle senha cadastro
+document.getElementById('toggle-reg-password')?.addEventListener('click', () => {
+    const input = document.getElementById('reg-password');
+    const icon  = document.getElementById('toggle-reg-password');
+    input.type  = input.type === 'password' ? 'text' : 'password';
+    icon.classList.toggle('fa-eye');
+    icon.classList.toggle('fa-eye-slash');
+});
     // Nav
     document.querySelectorAll('.nav-item[data-page]').forEach(item => {
         item.addEventListener('click', () => navigateTo(item.dataset.page));
@@ -366,38 +379,85 @@ function insertAtCursor(el, text) {
 // ════════════════════════════════════════
 //  AUTH
 // ════════════════════════════════════════
+function mostrarTela(id) {
+    document.querySelectorAll('.tela-login').forEach(t => t.classList.remove('active'));
+    document.getElementById(id)?.classList.add('active');
+}
+
+function abrirTermo() {
+    document.getElementById('termo-modal')?.classList.add('active');
+}
+
+function fecharTermo() {
+    document.getElementById('termo-modal')?.classList.remove('active');
+}
+
+function aceitarTermo() {
+    document.getElementById('termo-aceito').checked = true;
+    fecharTermo();
+    showToast('Termos aceitos! ✅', 'success');
+}
+
 async function login() {
-    const username = document.getElementById('username').value.trim();
-    const password = document.getElementById('password').value;
+    const username = document.getElementById('login-username').value.trim();
+    const password = document.getElementById('login-password').value;
     if (!username || !password) { showToast('Preencha usuário e senha', 'warning'); return; }
 
     try {
-        const res = await fetch(`${API_URL}/login-register`, {
+        const res  = await fetch(`${API_URL}/login`, {
             method: 'POST',
             headers: {'Content-Type':'application/json'},
             body: JSON.stringify({ username, password })
         });
+        const data = await res.json();
+
         if (res.ok) {
-            const data = await res.json();
             currentUser = data.user;
             localStorage.setItem('user', JSON.stringify(currentUser));
             showToast(`Bem-vindo, ${currentUser.username}! 👋`, 'success');
             showApp();
-        } else if (res.status === 400) {
-            const data = await res.json();
-            showToast(data.error, 'error');
         } else {
-            showToast('Erro ao fazer login', 'error');
-}
-    } catch (err) {
-        showToast('Servidor offline. Verifique se o servidor está rodando.', 'error');
-    }
+            showToast(data.error, 'error');
+        }
+    } catch { showToast('Servidor offline.', 'error'); }
 }
 
-function logout() {
-    localStorage.removeItem('user');
-    localStorage.removeItem('savedPosts');
-    location.reload();
+async function register() {
+    const nomeCompleto   = document.getElementById('reg-nome').value.trim();
+    const username       = document.getElementById('reg-username').value.trim();
+    const email          = document.getElementById('reg-email').value.trim();
+    const telefone       = document.getElementById('reg-telefone').value.trim();
+    const dataNascimento = document.getElementById('reg-nascimento').value;
+    const password       = document.getElementById('reg-password').value;
+    const termoAceito    = document.getElementById('termo-aceito').checked;
+
+    if (!nomeCompleto || !username || !email || !telefone || !dataNascimento || !password) {
+        showToast('Preencha todos os campos!', 'warning');
+        return;
+    }
+
+    if (!termoAceito) {
+        showToast('Aceite os Termos de Uso para continuar!', 'warning');
+        return;
+    }
+
+    try {
+        const res  = await fetch(`${API_URL}/register`, {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({ nomeCompleto, username, email, telefone, dataNascimento, password, termoAceito })
+        });
+        const data = await res.json();
+
+        if (res.ok) {
+            currentUser = data.user;
+            localStorage.setItem('user', JSON.stringify(currentUser));
+            showToast(`Conta criada! Bem-vindo, ${currentUser.username}! 🎉`, 'success');
+            showApp();
+        } else {
+            showToast(data.error, 'error');
+        }
+    } catch { showToast('Servidor offline.', 'error'); }
 }
 
 // ════════════════════════════════════════
@@ -1702,7 +1762,7 @@ function connectWebSocket() {
     try {
      const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
     const wsUrl = `${protocol}://${window.location.host}`;
-        ws = new WebSocket('wss:https://meu-twitter-projeto-x.onrender.com');
+        ws = new WebSocket('wss://meu-twitter-projeto-x.onrender.com');
         ws.onopen  = () => console.log('✅ WebSocket conectado');
         ws.onmessage = (event) => {
             try {

@@ -308,6 +308,66 @@ body.large-text { font-size: 130%; }
     box-shadow: 0 0 0 4px rgba(102,126,234,0.12);
 }
 
+.tela-login {
+    display: none;
+    animation: loginReveal 0.4s cubic-bezier(0.22,1,0.36,1) forwards;
+}
+
+.tela-login.active {
+    display: block;
+}
+
+.btn-voltar {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+.btn-voltar:hover { background: var(--bg-hover); color: var(--text); }
+
+.login-divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: var(--text-muted);
+    font-size: 0.82rem;
+    margin: 4px 0;
+}
+.login-divider::before,
+.login-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+}
+
+.termo-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    padding: 4px 0;
+}
+.termo-checkbox input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--primary);
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+
 .toggle-password {
     position: absolute;
     right: 16px;

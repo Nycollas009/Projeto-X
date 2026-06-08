@@ -18,30 +18,130 @@
 
     <!-- ══ LOGIN SCREEN ══ -->
     <div id="login-container">
-        <div id="login-screen">
-            <div class="login-logo-wrapper">
-            
-                <img src="logo.png" alt="Logo do Tiwitter" style="width:130%; height:140px;">
-               
-            </div>
-            <h1></h1>
-            <p>Conecte-se com o mundo de forma inovadora</p>
-            <div class="login-form">
-                <input type="text" id="username" placeholder="Nome de usuário" autocomplete="off">
-                <div class="password-input-wrapper">
-                    <input type="password" id="password" placeholder="Senha">
-                    <small style="color:var(--text-muted);font-size:0.75rem;margin-top: 1px;display:block;">
-                        Entre 6 e 20 caracteres| um maiúsculo | um número | um símbolo
-                    </small>
-                    <i class="fas fa-eye toggle-password" id="toggle-password"></i>
-                </div>
-                <button class="btn-primary" id="login-btn">
-                    <i class="fas fa-arrow-right"></i> Entrar / Criar conta
-                </button>
-            </div>
+
+    <!-- TELA DE BOAS VINDAS -->
+    <div id="tela-boasvindas" class="tela-login active">
+        <div class="login-logo-wrapper">
+            <img src="logo.png" alt="Logo" class="nav-logo-img">
+        </div>
+        <h1>Tiwitter</h1>
+        <p>Conecte-se com o mundo de forma inovadora</p>
+        <div class="login-form">
+            <button class="btn-primary" onclick="mostrarTela('tela-cadastro')">
+                <i class="fas fa-user-plus"></i> Criar conta
+            </button>
+            <div class="login-divider"><span>ou</span></div>
+            <button class="btn-secondary-login" onclick="mostrarTela('tela-entrar')">
+                <i class="fas fa-arrow-right"></i> Entrar
+            </button>
         </div>
     </div>
-    <div id="bg-effect"></div>
+
+    <!-- TELA DE LOGIN -->
+    <div id="tela-entrar" class="tela-login">
+        <button class="btn-voltar" onclick="mostrarTela('tela-boasvindas')">
+            <i class="fas fa-arrow-left"></i>
+        </button>
+        <div class="login-logo-wrapper">
+            <img src="logo.png" alt="Logo" class="nav-logo-img">
+        </div>
+        <h1>Entrar</h1>
+        <div class="login-form">
+            <input type="text" id="login-username" placeholder="Usuário ou email" autocomplete="off">
+            <div class="password-input-wrapper">
+                <input type="password" id="login-password" placeholder="Senha">
+                <i class="fas fa-eye toggle-password" id="toggle-login-password"></i>
+            </div>
+            <button class="btn-primary" id="login-btn">
+                <i class="fas fa-arrow-right"></i> Entrar
+            </button>
+            <p style="text-align:center;font-size:0.82rem;color:var(--text-secondary);margin-top:8px;">
+                Não tem conta? 
+                <span onclick="mostrarTela('tela-cadastro')" style="color:var(--primary);cursor:pointer;font-weight:600;">Cadastre-se</span>
+            </p>
+        </div>
+    </div>
+
+    <!-- TELA DE CADASTRO -->
+    <div id="tela-cadastro" class="tela-login">
+        <button class="btn-voltar" onclick="mostrarTela('tela-boasvindas')">
+            <i class="fas fa-arrow-left"></i>
+        </button>
+        <div class="login-logo-wrapper">
+            <img src="logo.png" alt="Logo" class="nav-logo-img">
+        </div>
+        <h1>Criar conta</h1>
+        <div class="login-form">
+            <input type="text" id="reg-nome" placeholder="Nome completo" autocomplete="off">
+            <input type="text" id="reg-username" placeholder="Nome de usuário" autocomplete="off">
+            <input type="email" id="reg-email" placeholder="Email">
+            <input type="tel" id="reg-telefone" placeholder="Telefone (com DDD)">
+            <input type="date" id="reg-nascimento" placeholder="Data de nascimento">
+            <small style="color:var(--text-muted);font-size:0.75rem;margin-top:-8px;display:block;">
+                Você deve ter 18 anos ou mais
+            </small>
+            <div class="password-input-wrapper">
+                <input type="password" id="reg-password" placeholder="Senha">
+                <i class="fas fa-eye toggle-password" id="toggle-reg-password"></i>
+            </div>
+            <small style="color:var(--text-muted);font-size:0.75rem;margin-top:-8px;display:block;line-height:1.6;">
+                6 a 20 caracteres · uma maiúscula · um número · um caractere especial
+            </small>
+            <div class="termo-checkbox">
+                <input type="checkbox" id="termo-aceito">
+                <label for="termo-aceito">
+                    Li e aceito os <span onclick="abrirTermo()" style="color:var(--primary);cursor:pointer;font-weight:600;">Termos de Uso</span>
+                </label>
+            </div>
+            <button class="btn-primary" id="register-btn">
+                <i class="fas fa-user-plus"></i> Cadastrar
+            </button>
+        </div>
+    </div>
+
+</div>
+
+<!-- MODAL TERMO DE USO -->
+<div id="termo-modal" class="modal">
+    <div class="modal-content" style="max-width:600px;background:var(--bg-card);padding:36px;border-radius:var(--radius-xl);border:1px solid var(--border);max-height:80vh;overflow-y:auto;">
+        <span class="close-modal" onclick="fecharTermo()">&times;</span>
+        <h2 style="margin-bottom:20px;font-size:1.2rem;font-weight:800;">Termos de Uso — Tiwitter Social</h2>
+        <div style="font-size:0.85rem;color:var(--text-secondary);line-height:1.8;">
+            <p><strong style="color:var(--text);">Última atualização:</strong> 2025</p><br>
+            <p><strong style="color:var(--text);">1. Aceitação dos Termos</strong></p>
+            <p>Ao criar uma conta no Tiwitter Social, você confirma que leu, entendeu e concorda com estes Termos de Uso. Caso não concorde, não utilize a plataforma.</p><br>
+            <p><strong style="color:var(--text);">2. Elegibilidade</strong></p>
+            <p>O uso da plataforma é permitido exclusivamente para pessoas com <strong>18 anos ou mais</strong>. Ao se cadastrar, você declara que possui a idade mínima exigida. O Tiwitter Social não se responsabiliza por cadastros realizados com informações falsas, incluindo data de nascimento incorreta.</p><br>
+            <p><strong style="color:var(--text);">3. Responsabilidade pelo Cadastro</strong></p>
+            <p>Você é inteiramente responsável pelas informações fornecidas no cadastro. O Tiwitter Social <strong>não se responsabiliza</strong> por dados falsos, incorretos ou fraudulentos inseridos pelos usuários. Em caso de uso indevido da plataforma com dados falsos, o usuário poderá ter sua conta suspensa ou excluída sem aviso prévio.</p><br>
+            <p><strong style="color:var(--text);">4. Conduta do Usuário</strong></p>
+            <p>É estritamente proibido:</p>
+            <ul style="margin-left:20px;margin-top:8px;">
+                <li>Publicar conteúdo ofensivo, racista, homofóbico, machista ou discriminatório</li>
+                <li>Compartilhar conteúdo pornográfico, violento ou ilegal</li>
+                <li>Assediar, ameaçar ou intimidar outros usuários</li>
+                <li>Divulgar links para sites impróprios ou ilegais</li>
+                <li>Criar contas falsas ou se passar por outra pessoa</li>
+                <li>Realizar ataques de spam ou flood na plataforma</li>
+            </ul><br>
+            <p><strong style="color:var(--text);">5. Privacidade e Dados</strong></p>
+            <p>Seus dados pessoais são armazenados de forma criptografada e não são compartilhados com terceiros. Utilizamos suas informações exclusivamente para o funcionamento da plataforma e recuperação de conta.</p><br>
+            <p><strong style="color:var(--text);">6. Propriedade Intelectual</strong></p>
+            <p>O conteúdo publicado por você é de sua responsabilidade. Ao publicar na plataforma, você concede ao Tiwitter Social o direito de exibir esse conteúdo para outros usuários.</p><br>
+            <p><strong style="color:var(--text);">7. Suspensão e Exclusão</strong></p>
+            <p>O Tiwitter Social reserva-se o direito de suspender ou excluir contas que violem estes termos, sem necessidade de aviso prévio ou reembolso.</p><br>
+            <p><strong style="color:var(--text);">8. Limitação de Responsabilidade</strong></p>
+            <p>O Tiwitter Social não se responsabiliza por danos diretos, indiretos ou consequentes resultantes do uso ou incapacidade de uso da plataforma, incluindo perda de dados ou interrupções de serviço.</p><br>
+            <p><strong style="color:var(--text);">9. Alterações nos Termos</strong></p>
+            <p>Estes termos podem ser atualizados a qualquer momento. O uso continuado da plataforma após alterações implica na aceitação dos novos termos.</p><br>
+            <p><strong style="color:var(--text);">10. Contato</strong></p>
+            <p>Em caso de dúvidas, entre em contato através das mensagens privadas com a administração da plataforma.</p>
+        </div>
+        <button class="btn-primary" onclick="aceitarTermo()" style="margin-top:24px;width:100%;">
+            <i class="fas fa-check"></i> Li e aceito os Termos de Uso
+        </button>
+    </div>
+</div>
 
     
     <!-- ══ MAIN APP ══ -->
