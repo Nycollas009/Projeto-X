@@ -349,6 +349,10 @@ app.patch('/users/:id', (req, res) => {
         return res.status(400).json({ error: 'Este site não é permitido no perfil!' });
     }
 
+    if (location && contemPalavrasProibidas(location)) {
+        return res.status(400).json({ error: 'Localização contém conteúdo inapropriado!' });
+    }
+
     if (userIndex !== -1) {
         if (avatar !== undefined) db.users[userIndex].avatar = avatar;
         if (coverImage !== undefined) db.users[userIndex].coverImage = coverImage;
