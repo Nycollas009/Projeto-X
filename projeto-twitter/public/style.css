@@ -411,6 +411,35 @@ body.large-text { font-size: 130%; }
 .btn-primary:hover { transform: translateY(-2px); box-shadow: var(--shadow-accent); }
 .btn-primary:active { transform: translateY(0); }
 
+.btn-secondary-login {
+    width: 100%;
+    padding: 15px;
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    color: #fff;
+    border: none;
+    border-radius: var(--radius);
+    font-size: 0.95rem;
+    font-weight: 700;
+    font-family: var(--font-display);
+    cursor: pointer;
+    transition: all 0.25s;
+    position: relative;
+    overflow: hidden;
+    margin-top: 4px;
+}
+
+.btn-secondary-login::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(255,255,255,0.15), transparent);
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+.btn-secondary-login:hover::before { opacity: 1; }
+.btn-secondary-login:hover { transform: translateY(-2px); box-shadow: var(--shadow-accent); }
+.btn-secondary-login:active { transform: translateY(0); }
+
 /* == APP CONTAINER == */
 #app-container {
     display: none;
