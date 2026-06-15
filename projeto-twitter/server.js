@@ -458,7 +458,7 @@ const palavrasProibidas = [// Palavrões gerais
     'babaca', 'bab4ca',
     'retardado', 'retardada', 'ret4rdado',
     'imbecil', 'idiota', 'idi0ta',
-    'canalha', 'desgraça', 'desgraçado',
+    'canalha', 'desgraça', 'desgraçado','penis', 'pau','pênis',
 
     // Machistas
     'feminazi', 'histérica', 'histérico',
