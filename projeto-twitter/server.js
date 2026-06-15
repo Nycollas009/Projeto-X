@@ -353,6 +353,10 @@ app.patch('/users/:id', (req, res) => {
         return res.status(400).json({ error: 'Localização contém conteúdo inapropriado!' });
     }
 
+    if (location && contemLink(location)) {
+    return res.status(400).json({ error: 'Localização não pode conter links!' });
+}
+
     if (userIndex !== -1) {
         if (avatar !== undefined) db.users[userIndex].avatar = avatar;
         if (coverImage !== undefined) db.users[userIndex].coverImage = coverImage;
