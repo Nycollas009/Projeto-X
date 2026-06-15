@@ -229,7 +229,6 @@ body.large-text { font-size: 130%; }
     user-select: none;
 }
 
-
 .login-form {
     display: flex;
     flex-direction: column;
