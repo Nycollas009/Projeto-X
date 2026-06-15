@@ -195,19 +195,6 @@ body.large-text { font-size: 130%; }
     to   { transform: translate(40px, 30px) scale(1.1); }
 }
 
-#login-screen {
-    position: relative;
-    z-index: 1;
-    width: 460px;
-    padding: 56px 52px;
-    background: var(--bg-glass);
-    border-radius: 36px;
-    border: 1px solid var(--border);
-    backdrop-filter: blur(40px);
-    box-shadow: var(--shadow), var(--shadow-glow), inset 0 1px 0 rgba(255,255,255,0.05);
-    animation: loginReveal 0.7s cubic-bezier(0.22,1,0.36,1) forwards;
-    text-align: center;
-}
 
 @keyframes loginReveal {
     from { opacity:0; transform: translateY(40px) scale(0.96); }
@@ -242,22 +229,6 @@ body.large-text { font-size: 130%; }
     user-select: none;
 }
 
-#login-screen h1 {
-    font-size: 2rem;
-    font-weight: 800;
-    letter-spacing: -0.04em;
-    background: linear-gradient(135deg, #fff 40%, var(--primary-light));
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
-    margin-bottom: 8px;
-}
-
-#login-screen > p {
-    color: var(--text-secondary);
-    font-size: 0.9rem;
-    margin-bottom: 40px;
-}
 
 .login-form {
     display: flex;
@@ -315,6 +286,16 @@ body.large-text { font-size: 130%; }
 
 .tela-login.active {
     display: block;
+    width: 460px;
+    padding: 56px 52px;
+    background: var(--bg-glass);
+    border-radius: 36px;
+    border: 1px solid var(--border);
+    backdrop-filter: blur(40px);
+    box-shadow: var(--shadow), var(--shadow-glow), inset 0 1px 0 rgba(255,255,255,0.05);
+    animation: loginReveal 0.4s cubic-bezier(0.22,1,0.36,1) forwards;
+    text-align: center;
+    position: relative;
 }
 
 .btn-voltar {
