@@ -427,6 +427,37 @@ body.large-text { font-size: 130%; }
     position: relative;
 }
 
+.field-tooltip-wrapper {
+    position: relative;
+    width: 100%;
+}
+
+.field-tooltip {
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 0;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 8px 14px;
+    border-radius: var(--radius-sm);
+    font-size: 0.78rem;
+    font-weight: 600;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(4px);
+    transition: opacity 0.15s, transform 0.15s;
+    box-shadow: var(--shadow-sm);
+    z-index: 20;
+}
+
+.field-tooltip-wrapper:hover .field-tooltip,
+.password-input-wrapper:hover .field-tooltip {
+    opacity: 1;
+    transform: translateY(0);
+}
+
 /* 
    MACOS DOCK SIDEBAR
     */

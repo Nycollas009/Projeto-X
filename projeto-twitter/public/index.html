@@ -49,10 +49,16 @@
         </div>
         <h1>Entrar</h1>
         <div class="login-form">
-            <input type="text" id="login-username" placeholder="Usuário ou email" autocomplete="off">
+          <div class="field-tooltip-wrapper">
+    <input type="text" id="login-username" placeholder="Usuário ou email" autocomplete="off">
+    <span class="field-tooltip">Exemplo: joao_silva</span>
+</div>
             <div class="password-input-wrapper">
-                <input type="password" id="login-password" placeholder="Senha">
-                <i class="fas fa-eye toggle-password" id="toggle-login-password"></i>
+               <div class="password-input-wrapper">
+    <input type="password" id="login-password" placeholder="Senha">
+    <i class="fas fa-eye toggle-password" id="toggle-login-password"></i>
+    <span class="field-tooltip">Exemplo: Senha@123</span>
+</div>
             </div>
             <button class="btn-primary" id="login-btn">
                 <i class="fas fa-arrow-right"></i> Entrar
@@ -74,18 +80,22 @@
         </div>
         <h1>Criar conta</h1>
         <div class="login-form">
-            <input type="text" id="reg-nome" placeholder="Nome completo" autocomplete="off">
-            <input type="text" id="reg-username" placeholder="Nome de usuário" autocomplete="off">
+           <div class="field-tooltip-wrapper">
+    <input type="text" id="reg-username" placeholder="Nome de usuário" autocomplete="off">
+    <span class="field-tooltip">Exemplo: joao_silva123</span>
+</div>
+          
             <input type="email" id="reg-email" placeholder="Email">
             <input type="tel" id="reg-telefone" placeholder="Telefone (com DDD)">
             <input type="date" id="reg-nascimento" placeholder="Data de nascimento">
             <small style="color:var(--text-muted);font-size:0.75rem;margin-top:-8px;display:block;">
                 Você deve ter 18 anos ou mais
             </small>
-            <div class="password-input-wrapper">
-                <input type="password" id="reg-password" placeholder="Senha">
-                <i class="fas fa-eye toggle-password" id="toggle-reg-password"></i>
-            </div>
+           <div class="password-input-wrapper">
+    <input type="password" id="reg-password" placeholder="Senha">
+    <i class="fas fa-eye toggle-password" id="toggle-reg-password"></i>
+    <span class="field-tooltip">Exemplo: Senha@123</span>
+</div>
             <small style="color:var(--text-muted);font-size:0.75rem;margin-top:-8px;display:block;line-height:1.6;">
                 6 a 20 caracteres · uma maiúscula · um número · um caractere especial
             </small>
