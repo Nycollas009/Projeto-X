@@ -429,7 +429,6 @@ async function login() {
 }
 
 async function register() {
-    const nomeCompleto   = document.getElementById('reg-nome').value.trim();
     const username       = document.getElementById('reg-username').value.trim();
     const email          = document.getElementById('reg-email').value.trim();
     const telefone       = document.getElementById('reg-telefone').value.trim();
