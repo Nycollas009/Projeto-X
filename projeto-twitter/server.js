@@ -124,6 +124,13 @@ app.post('/register', async (req, res) => {
     if (!termoAceito)
         return res.status(400).json({ error: 'Você precisa aceitar os Termos de Uso!' });
 
+    if (contemPalavrasProibidas(nomeCompleto))
+        return res.status(400).json({ error: 'Nome completo contém conteúdo inapropriado!' });
+
+    if (contemPalavrasProibidas(username))
+        return res.status(400).json({ error: 'Nome de usuário contém conteúdo inapropriado!' });
+
+
     const erro = validarCadastro({ username, password, email, nomeCompleto, telefone, dataNascimento });
     if (erro) return res.status(400).json({ error: erro });
 
@@ -432,6 +439,13 @@ app.post('/users/unfollow', (req, res) => {
         res.status(404).json({ error: "Usuário não encontrado" });
     }
 });
+
+
+function contemPalavrasProibidasFrontend(texto) {
+    if (!texto) return false;
+    const textoLower = texto.toLowerCase();
+    return palavrasProibidasFrontend.some(p => textoLower.includes(p));
+}
 
 // CENSURA ==
 

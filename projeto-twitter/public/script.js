@@ -404,10 +404,100 @@ function aceitarTermo() {
     showToast('Termos aceitos! ✅', 'success');
 }
 
+const palavrasProibidasFrontend = [// Palavrões gerais
+    'porra', 'porr4', 'p0rra', 'porras',
+    'merda', 'merd4', 'm3rda', 'merdas',
+    'caralho', 'c4ralho', 'car4lho', 'caralh0',
+    'foda', 'f0da', 'fodas', 'fode', 'fodendo', 'fodido', 'fodida',
+    'buceta', 'buc3ta', 'buc4ta', 'bucetas',
+    'cu', 'cú', 'cuzao', 'cuzão',
+    'puta', 'put4', 'putas', 'putaria',
+    'vagabunda', 'vagabundo', 'vag4bunda',
+    'safado', 'safada', 'saf4do',
+    'piranha', 'pir4nha',
+    'prostituta', 'prostituto',
+    'punheta', 'punh3ta',
+    'arrombado', 'arrombada',
+    'cacete', 'cac3te',
+    'pau', 'rola', 'xoxota',
+    'fdp', 'filhadaputa', 'filho da puta', 'filho de puta',
+    'vsf', 'vai se foder', 'vai se fuder',
+    'tnc', 'toma no cu',
+    'pqp', 'krl', 'krlh',
+    'babaca', 'bab4ca',
+    'retardado', 'retardada', 'ret4rdado',
+    'imbecil', 'idiota', 'idi0ta',
+    'canalha', 'desgraça', 'desgraçado','penis', 'pau','pênis',
+
+    // Machistas
+    'feminazi', 'histérica', 'histérico',
+    'mulher no volante', 'lugar de mulher',
+    'mulher não presta', 'vai lavar louça',
+    'vai cozinhar', 'vai ter filho',
+    'mulher burra', 'mulher idiota',
+    'sua vez de calar', 'cala boca mulher',
+    'fresca', 'pirua', 'vaca',
+    'galinha', 'rapariga',
+    'mulher é objeto', 'mulher é propriedade', 'vadia', 'vagabunda', 'piranha', 'putinha', 'safada', 'safada', 'saf4da','putiane', ' sua puta',
+    // Racistas
+    'macaco', 'macacada',
+    'nego', 'nega', 'neguinho',
+    'crioulo', 'crioula',
+    'preto safado', 'preta safada',
+    'volta pra africa', 'volta para a africa',
+    'escravidão deveria voltar',
+    'raça inferior', 'raça ruim',
+    'cabelo ruim', 'nariz de macaco',
+    'nordestino burro', 'baiano burro',
+    'paraíba', 'pau de arara',
+    'amarelado', 'olho puxado',
+    'japonês de merda', 'chinês de merda',
+
+    // Homofóbicas
+    'viado', 'vi4do', 'viad0', 'viadinho',
+    'sapatão', 'sapat4o',
+    'traveco', 'trav3co',
+    'bicha', 'bich4',
+    'gay de merda', 'lésbica de merda',
+    'cura gay', 'gay tem cura',
+    'abominação', 'doença mental gay',
+    'família normal', 'família de verdade',
+    'isso é pecado', 'vai pro inferno gay',
+    'homossexualismo', // termo incorreto e pejorativo
+
+    // Preconceituosas gerais
+    'judeu safado', 'judeu de merda',
+    'muçulmano terrorista', 'islâmico terrorista',
+    'evangélico hipócrita', 'crente de merda',
+    'ateu sem moral',
+    'gordo inútil', 'gordo nojento', 'gorda nojenta',
+    'aleijado', 'aleijada',
+    'mongolóide', 'mongol',
+    'louco de hospício', 'maluco de hospício',
+    'pobre vagabundo', 'pobre inútil',
+    'favelado', 'favelada',
+    'mendigo inútil', 'mendigo de merda',
+    'deficiente inútil', 'deficiente mental',
+    'esquizofrênico', // usado como xingamento
+    'autista', // usado como xingamento
+];
+
+function contemPalavrasProibidasFrontend(texto) {
+    if (!texto) return false;
+    const textoLower = texto.toLowerCase();
+    return palavrasProibidasFrontend.some(p => textoLower.includes(p));
+}
+
+
 async function login() {
     const username = document.getElementById('login-username').value.trim();
     const password = document.getElementById('login-password').value;
+
     if (!username || !password) { showToast('Preencha usuário e senha', 'warning'); return; }
+
+    if (contemPalavrasProibidasFrontend(username)) {
+        showToast('Campo contém conteúdo inapropriado! ⚠️', 'error'); return;
+    }
 
     try {
         const res  = await fetch(`${API_URL}/login`, {
@@ -438,13 +528,22 @@ async function register() {
     const termoAceito    = document.getElementById('termo-aceito').checked;
 
     if (!nomeCompleto || !username || !email || !telefone || !dataNascimento || !password) {
-        showToast('Preencha todos os campos!', 'warning');
-        return;
+        showToast('Preencha todos os campos!', 'warning'); return;
+    }
+
+    
+    if (contemPalavrasProibidasFrontend(nomeCompleto)) {
+        showToast('Nome completo contém conteúdo inapropriado! ⚠️', 'error'); return;
+    }
+    if (contemPalavrasProibidasFrontend(username)) {
+        showToast('Nome de usuário contém conteúdo inapropriado! ⚠️', 'error'); return;
+    }
+    if (contemPalavrasProibidasFrontend(email)) {
+        showToast('Email contém conteúdo inapropriado! ⚠️', 'error'); return;
     }
 
     if (!termoAceito) {
-        showToast('Aceite os Termos de Uso para continuar!', 'warning');
-        return;
+        showToast('Aceite os Termos de Uso para continuar!', 'warning'); return;
     }
 
     try {
