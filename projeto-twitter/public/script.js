@@ -429,6 +429,7 @@ async function login() {
 }
 
 async function register() {
+    const nomeCompleto   = document.getElementById('reg-nome').value.trim();
     const username       = document.getElementById('reg-username').value.trim();
     const email          = document.getElementById('reg-email').value.trim();
     const telefone       = document.getElementById('reg-telefone').value.trim();
@@ -436,7 +437,7 @@ async function register() {
     const password       = document.getElementById('reg-password').value;
     const termoAceito    = document.getElementById('termo-aceito').checked;
 
-    if (!username || !email || !telefone || !dataNascimento || !password) {
+    if (!nomeCompleto || !username || !email || !telefone || !dataNascimento || !password) {
         showToast('Preencha todos os campos!', 'warning');
         return;
     }
@@ -447,10 +448,10 @@ async function register() {
     }
 
     try {
-        const res  = await fetch(`${API_URL}/register`, {
+        const res = await fetch(`${API_URL}/register`, {
             method: 'POST',
             headers: {'Content-Type':'application/json'},
-            body: JSON.stringify({ username, email, telefone, dataNascimento, password, termoAceito })
+            body: JSON.stringify({ nomeCompleto, username, email, telefone, dataNascimento, password, termoAceito })
         });
         const data = await res.json();
 
