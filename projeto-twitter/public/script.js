@@ -436,7 +436,7 @@ async function register() {
     const password       = document.getElementById('reg-password').value;
     const termoAceito    = document.getElementById('termo-aceito').checked;
 
-    if (!nomeCompleto || !username || !email || !telefone || !dataNascimento || !password) {
+    if (!username || !email || !telefone || !dataNascimento || !password) {
         showToast('Preencha todos os campos!', 'warning');
         return;
     }
@@ -450,7 +450,7 @@ async function register() {
         const res  = await fetch(`${API_URL}/register`, {
             method: 'POST',
             headers: {'Content-Type':'application/json'},
-            body: JSON.stringify({ nomeCompleto, username, email, telefone, dataNascimento, password, termoAceito })
+            body: JSON.stringify({ username, email, telefone, dataNascimento, password, termoAceito })
         });
         const data = await res.json();
 
