@@ -495,12 +495,6 @@ async function login() {
 
     if (!username || !password) { showToast('Preencha usuário e senha', 'warning'); return; }
 
-    const captchaResponse = grecaptcha.getResponse();
-    if (!captchaResponse) {
-        showToast('Confirme que você não é um robô!', 'warning');
-        return;
-    }
-
     if (contemPalavrasProibidasFrontend(username)) {
         showToast('Campo contém conteúdo inapropriado! ⚠️', 'error'); return;
     }
@@ -509,7 +503,7 @@ async function login() {
         const res  = await fetch(`${API_URL}/login`, {
             method: 'POST',
             headers: {'Content-Type':'application/json'},
-            body: JSON.stringify({ username, password, captcha: captchaResponse })
+            body: JSON.stringify({ username, password })
         });
         const data = await res.json();
 
@@ -520,7 +514,6 @@ async function login() {
             showApp();
         } else {
             showToast(data.error, 'error');
-            grecaptcha.reset();
         }
     } catch { showToast('Servidor offline.', 'error'); }
 }
@@ -538,12 +531,7 @@ async function register() {
         showToast('Preencha todos os campos!', 'warning'); return;
     }
 
-    const captchaResponse = grecaptcha.getResponse();
-    if (!captchaResponse) {
-        showToast('Confirme que você não é um robô!', 'warning');
-        return;
-    }
-
+    
     if (contemPalavrasProibidasFrontend(nomeCompleto)) {
         showToast('Nome completo contém conteúdo inapropriado! ⚠️', 'error'); return;
     }
@@ -562,7 +550,7 @@ async function register() {
         const res = await fetch(`${API_URL}/register`, {
             method: 'POST',
             headers: {'Content-Type':'application/json'},
-            body: JSON.stringify({ nomeCompleto, username, email, telefone, dataNascimento, password, termoAceito, captcha: captchaResponse })
+            body: JSON.stringify({ nomeCompleto, username, email, telefone, dataNascimento, password, termoAceito })
         });
         const data = await res.json();
 
@@ -573,28 +561,9 @@ async function register() {
             showApp();
         } else {
             showToast(data.error, 'error');
-            grecaptcha.reset();
         }
     } catch { showToast('Servidor offline.', 'error'); }
 }
-
-
-async function verificarCaptcha(token) {
-    if (!token) return false;
-    try {
-        const fetch = (await import('node-fetch')).default;
-        const response = await fetch('https://www.google.com/recaptcha/api/siteverify', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: `secret=6LdlLTktAAAAADB9lf238T96GHzHrZlKircYjRvf&response=${token}`
-        });
-        const data = await response.json();
-        return data.success;
-    } catch {
-        return false;
-    }
-}
-
 
 // ════════════════════════════════════════
 //  SHOW APP
@@ -2129,3 +2098,4 @@ function stopPolling() {
     pollingInterval = null;
 }
 
+s
