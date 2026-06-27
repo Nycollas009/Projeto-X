@@ -11,6 +11,7 @@
     <link rel="stylesheet" href="style.css">
    <script type="module" src="https://cdn.jsdelivr.net/npm/emoji-picker-element@1/index.js"></script>
     <link rel="icon" type="image/x-icon" href="logo-removebg-preview.png">
+    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
 </head>
 <body>
     <div id="toast-container"></div>
@@ -60,6 +61,7 @@
     <span class="field-tooltip">Exemplo: Senha@123</span>
 </div>
             </div>
+            <div class="g-recaptcha" data-sitekey="6LdlLTktAAAAALY0r1tKkg1U9kPNjxjevg2eaZEb"></div>
             <button class="btn-primary" id="login-btn">
                 <i class="fas fa-arrow-right"></i> Entrar
             </button>
@@ -106,6 +108,7 @@
                     Li e aceito os <span onclick="abrirTermo()" style="color:var(--primary);cursor:pointer;font-weight:600;">Termos de Uso</span>
                 </label>
             </div>
+            <div class="g-recaptcha" data-sitekey="6LdlLTktAAAAALY0r1tKkg1U9kPNjxjevg2eaZEb" data-callback="onCaptchaCadastro" id="captcha-cadastro"></div>
             <button class="btn-primary" id="register-btn">
                 <i class="fas fa-user-plus"></i> Cadastrar
             </button>
