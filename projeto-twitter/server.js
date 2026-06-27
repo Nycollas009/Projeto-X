@@ -120,12 +120,7 @@ function validarCadastro(dados) {
 // CADASTRO
 app.post('/register', async (req, res) => {
     const { username, password, email, nomeCompleto, telefone, dataNascimento, termoAceito, captcha } = req.body;
-     
-    const captchaValido = await verificarCaptcha(captcha);
-    if (!captchaValido) {
-        return res.status(400).json({ error: 'Verificação de captcha falhou!' });
-    }
-    
+  
     if (!termoAceito)
         return res.status(400).json({ error: 'Você precisa aceitar os Termos de Uso!' });
 
@@ -174,15 +169,15 @@ app.post('/register', async (req, res) => {
     res.json({ user: userPublico });
 });
 
+  const captchaValido = await verificarCaptcha(captcha);
+    if (!captchaValido) {
+        return res.status(400).json({ error: 'Verificação de captcha falhou!' });
+    }
+
 // LOGIN
 app.post('/login', async (req, res) => {
     const { username, password, captcha } = req.body;
     const db = readDB();
-
-     const captchaValido = await verificarCaptcha(captcha);
-    if (!captchaValido) {
-        return res.status(400).json({ error: 'Verificação de captcha falhou!' });
-    }
 
     const user = db.users.find(u =>
         u.username === username || u.email === username
@@ -190,6 +185,11 @@ app.post('/login', async (req, res) => {
 
     if (!user)
         return res.status(404).json({ error: 'Usuário não encontrado!' });
+
+    const captchaValido = await verificarCaptcha(captcha);
+    if (!captchaValido) {
+        return res.status(400).json({ error: 'Verificação de captcha falhou!' });
+    }
 
     const senhaCorreta = bcrypt.compareSync(password, user.password);
     if (!senhaCorreta)
