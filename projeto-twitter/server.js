@@ -122,7 +122,27 @@ function validarCadastro(dados) {
 
 // CADASTRO
 app.post('/register', async (req, res) => {
-    const { username, password, email, nomeCompleto, telefone, dataNascimento, termoAceito } = req.body;
+    const { username, password, email, nomeCompleto, telefone, dataNascimento, termoAceito, 'cf-turnstile-response': token } = req.body;
+
+    
+    const verify = await fetch(
+        'https://challenges.cloudflare.com/turnstile/v0/siteverify',
+        {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({
+                secret: process.env.TURNSTILE_SECRET_KEY,
+                response: token
+            })
+        }
+    );
+    const captchaData = await verify.json();
+    if (!captchaData.success) {
+        return res.status(403).json({ error: 'Captcha inválido!' });
+    }
+
+    if (!termoAceito)
+        return res.status(400).json({ error: 'Você precisa aceitar os Termos de Uso!' });
 
     if (!termoAceito)
         return res.status(400).json({ error: 'Você precisa aceitar os Termos de Uso!' });

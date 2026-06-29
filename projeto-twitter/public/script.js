@@ -482,12 +482,6 @@ const palavrasProibidasFrontend = [// Palavrões gerais
     'autista', // usado como xingamento
 ];
 
-function contemPalavrasProibidasFrontend(texto) {
-    if (!texto) return false;
-    const textoLower = texto.toLowerCase();
-    return palavrasProibidasFrontend.some(p => textoLower.includes(p));
-}
-
 
 async function login() {
     const username = document.getElementById('login-username').value.trim();
@@ -517,7 +511,6 @@ async function login() {
         }
     } catch { showToast('Servidor offline.', 'error'); }
 }
-
 async function register() {
     const nomeCompleto   = document.getElementById('reg-nome').value.trim();
     const username       = document.getElementById('reg-username').value.trim();
@@ -528,29 +521,31 @@ async function register() {
     const termoAceito    = document.getElementById('termo-aceito').checked;
 
     if (!nomeCompleto || !username || !email || !telefone || !dataNascimento || !password) {
-        showToast('Preencha todos os campos!', 'warning'); return;
-    }
-
-    
-    if (contemPalavrasProibidasFrontend(nomeCompleto)) {
-        showToast('Nome completo contém conteúdo inapropriado! ⚠️', 'error'); return;
-    }
-    if (contemPalavrasProibidasFrontend(username)) {
-        showToast('Nome de usuário contém conteúdo inapropriado! ⚠️', 'error'); return;
-    }
-    if (contemPalavrasProibidasFrontend(email)) {
-        showToast('Email contém conteúdo inapropriado! ⚠️', 'error'); return;
+        showToast('Preencha todos os campos!', 'warning');
+        return;
     }
 
     if (!termoAceito) {
-        showToast('Aceite os Termos de Uso para continuar!', 'warning'); return;
+        showToast('Aceite os Termos de Uso para continuar!', 'warning');
+        return;
+    }
+
+    // Captura o token do Turnstile dentro da tela de cadastro
+    const turnstileToken = document.querySelector('#tela-cadastro [name="cf-turnstile-response"]')?.value;
+
+    if (!turnstileToken) {
+        showToast('Confirme que você não é um robô!', 'warning');
+        return;
     }
 
     try {
-        const res = await fetch(`${API_URL}/register`, {
+        const res  = await fetch(`${API_URL}/register`, {
             method: 'POST',
             headers: {'Content-Type':'application/json'},
-            body: JSON.stringify({ nomeCompleto, username, email, telefone, dataNascimento, password, termoAceito })
+            body: JSON.stringify({
+                username, email, telefone, dataNascimento, password, termoAceito, nomeCompleto,
+                'cf-turnstile-response': turnstileToken
+            })
         });
         const data = await res.json();
 
@@ -561,6 +556,7 @@ async function register() {
             showApp();
         } else {
             showToast(data.error, 'error');
+            if (typeof turnstile !== 'undefined') turnstile.reset();
         }
     } catch { showToast('Servidor offline.', 'error'); }
 }
