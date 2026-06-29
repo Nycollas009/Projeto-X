@@ -153,8 +153,8 @@ body.large-text { font-size: 130%; }
 }
 
 .login-logo-img {
-    width: 65%;
-    height: 65%;
+    width: 90%;
+    height: 90%;
     object-fit: contain;
     display: block;
 }
