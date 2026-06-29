@@ -601,8 +601,7 @@ function showApp() {
     setupEmojiPicker();
     startPolling(); 
     aplicarTemaSalvo();  
-    aplicarAcessibilidadeSalva(); // ← adiciona
-    aplicarTemaSalvo();
+    aplicarAcessibilidadeSalva();
     loadWeather();
     setupGifPicker();
 }

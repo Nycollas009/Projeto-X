@@ -165,8 +165,16 @@ body.large-text { font-size: 130%; }
     align-items: center;
     justify-content: center;
     background: url('bg-pattern.jpg') center/cover no-repeat;
+    background-size: 130%;
+    animation: bgPan 30s ease-in-out infinite alternate;
     z-index: 1000;
     overflow: hidden;
+}
+
+@keyframes bgPan {
+    0%   { background-position: 0% 0%; }
+    50%  { background-position: 100% 50%; }
+    100% { background-position: 0% 100%; }
 }
 
 #login-container::before {
