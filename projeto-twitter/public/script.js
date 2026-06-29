@@ -2118,4 +2118,3 @@ function stopPolling() {
     pollingInterval = null;
 }
 
-s
