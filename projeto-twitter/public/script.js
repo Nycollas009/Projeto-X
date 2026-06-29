@@ -483,6 +483,12 @@ const palavrasProibidasFrontend = [// Palavrões gerais
 ];
 
 
+function contemPalavrasProibidasFrontend(texto) {
+    if (!texto) return false;
+    const textoLower = texto.toLowerCase();
+    return palavrasProibidasFrontend.some(p => textoLower.includes(p));
+}
+
 async function login() {
     const username = document.getElementById('login-username').value.trim();
     const password = document.getElementById('login-password').value;
