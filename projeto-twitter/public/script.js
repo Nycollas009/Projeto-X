@@ -82,9 +82,11 @@ document.getElementById('toggle-reg-password')?.addEventListener('click', () => 
     document.getElementById('main-search')?.addEventListener('input', debounce(searchUsers, 300));
 
     // Modal
-    document.querySelector('.close-modal')?.addEventListener('click', () => {
-        document.getElementById('image-modal')?.classList.remove('active');
-    });
+   document.addEventListener('click', (e) => {
+    if (e.target.classList.contains('close-modal')) {
+        e.target.closest('.modal')?.classList.remove('active');
+    }
+});
     document.getElementById('image-modal')?.addEventListener('click', e => {
         if (e.target === document.getElementById('image-modal'))
             document.getElementById('image-modal').classList.remove('active');
@@ -491,6 +493,7 @@ function contemPalavrasProibidasFrontend(texto) {
 
 
 
+
 async function login() {
     const username = document.getElementById('login-username').value.trim();
     const password = document.getElementById('login-password').value;
@@ -530,6 +533,7 @@ async function login() {
         }
     } catch { showToast('Servidor offline.', 'error'); }
 }
+
 
 
 async function register() {

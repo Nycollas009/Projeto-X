@@ -164,9 +164,17 @@ body.large-text { font-size: 130%; }
     display: flex;
     align-items: center;
     justify-content: center;
-    background: var(--bg-void);
+    background: url('bg-pattern.jpg') center/cover no-repeat;
     z-index: 1000;
     overflow: hidden;
+}
+
+#login-container::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(5,5,10,0.75);
+    z-index: 0;
 }
 
 /* Animated background orbs */
@@ -271,6 +279,13 @@ body.large-text { font-size: 130%; }
     transition: all 0.25s;
     outline: none;
 }
+
+
+#tela-cadastro.active {
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
 
 .password-input-wrapper input:focus {
     border-color: var(--primary);
