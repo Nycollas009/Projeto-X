@@ -152,7 +152,12 @@ body.large-text { font-size: 130%; }
     to   { transform: translateX(0) scale(1);     opacity: 1; }
 }
 
-
+.login-logo-img {
+    width: 65%;
+    height: 65%;
+    object-fit: contain;
+    display: block;
+}
 
 
 #login-container {
