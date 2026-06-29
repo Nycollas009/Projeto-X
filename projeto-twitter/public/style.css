@@ -372,6 +372,24 @@ body.large-text { font-size: 130%; }
     flex-shrink: 0;
 }
 
+.btn-voltar-termo {
+    padding: 15px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: var(--radius);
+    font-size: 0.95rem;
+    font-weight: 700;
+    font-family: var(--font-display);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.btn-voltar-termo:hover {
+    background: var(--bg-hover);
+    border-color: var(--danger);
+    color: var(--danger);
+}
+
 
 .toggle-password {
     position: absolute;
