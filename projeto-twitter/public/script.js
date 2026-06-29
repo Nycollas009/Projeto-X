@@ -489,6 +489,8 @@ function contemPalavrasProibidasFrontend(texto) {
     return palavrasProibidasFrontend.some(p => textoLower.includes(p));
 }
 
+
+
 async function login() {
     const username = document.getElementById('login-username').value.trim();
     const password = document.getElementById('login-password').value;
@@ -499,11 +501,21 @@ async function login() {
         showToast('Campo contém conteúdo inapropriado! ⚠️', 'error'); return;
     }
 
+    const turnstileToken = document.querySelector('#tela-entrar [name="cf-turnstile-response"]')?.value;
+
+    if (!turnstileToken) {
+        showToast('Confirme que você não é um robô!', 'warning');
+        return;
+    }
+
     try {
         const res  = await fetch(`${API_URL}/login`, {
             method: 'POST',
             headers: {'Content-Type':'application/json'},
-            body: JSON.stringify({ username, password })
+            body: JSON.stringify({
+                username, password,
+                'cf-turnstile-response': turnstileToken
+            })
         });
         const data = await res.json();
 
@@ -514,9 +526,12 @@ async function login() {
             showApp();
         } else {
             showToast(data.error, 'error');
+            if (typeof turnstile !== 'undefined') turnstile.reset();
         }
     } catch { showToast('Servidor offline.', 'error'); }
 }
+
+
 async function register() {
     const nomeCompleto   = document.getElementById('reg-nome').value.trim();
     const username       = document.getElementById('reg-username').value.trim();
