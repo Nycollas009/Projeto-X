@@ -1,9 +1,6 @@
 
 require('dotenv').config();
 
-const jwt = require('jsonwebtoken');
-const JWT_SECRET = process.env.JWT_SECRET || 'chave-temporaria-troque-no-render';
-
 const express = require('express');
 const fs = require('fs');
 const cors = require('cors');
@@ -32,19 +29,6 @@ if (!fs.existsSync(DB_FILE)) {
         notifications: []
     };
     fs.writeFileSync(DB_FILE, JSON.stringify(initialDB, null, 2));
-}
-
-function autenticar(req, res, next) {
-    const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1];
-
-    if (!token) return res.status(401).json({ error: 'Token não fornecido!' });
-
-    jwt.verify(token, JWT_SECRET, (err, decoded) => {
-        if (err) return res.status(403).json({ error: 'Token inválido ou expirado!' });
-        req.userId = decoded.id;
-        next();
-    });
 }
 
 const readDB = () => JSON.parse(fs.readFileSync(DB_FILE, 'utf-8'));
@@ -209,12 +193,11 @@ app.post('/register', async (req, res) => {
         followers:      [],
     };
 
-      db.users.push(newUser);
+    db.users.push(newUser);
     writeDB(db);
 
     const { password: _, telefone: __, ...userPublico } = newUser;
-    const authToken = jwt.sign({ id: newUser.id }, JWT_SECRET, { expiresIn: '7d' });
-    res.json({ user: userPublico, token: authToken });
+    res.json({ user: userPublico });
 });
 
 // LOGIN ALTERADO
@@ -260,13 +243,12 @@ app.post('/login', async (req, res) => {
     if (!user)
         return res.status(404).json({ error: 'Usuário não encontrado!' });
 
-      const senhaCorreta = bcrypt.compareSync(password, user.password);
+    const senhaCorreta = bcrypt.compareSync(password, user.password);
     if (!senhaCorreta)
         return res.status(401).json({ error: 'Senha incorreta!' });
 
     const { password: _, telefone: __, ...userPublico } = user;
-    const authToken = jwt.sign({ id: user.id }, JWT_SECRET, { expiresIn: '7d' });
-    res.json({ user: userPublico, token: authToken });
+    res.json({ user: userPublico });
 });
 
 
@@ -426,12 +408,8 @@ app.get('/posts/search', (req, res) => {
     res.json(posts.sort((a, b) => b.timestamp - a.timestamp));
 });
 
-app.patch('/users/:id', autenticar, (req, res) => {
+app.patch('/users/:id', (req, res) => {
     const { id } = req.params;
-
-    if (req.userId !== id) {
-        return res.status(403).json({ error: 'Você não pode editar o perfil de outro usuário!' });
-    }
     const { avatar, coverImage, bio, location, website } = req.body;
     const db = readDB();
     const userIndex = db.users.findIndex(u => u.id === id);
@@ -525,7 +503,11 @@ app.post('/users/unfollow', (req, res) => {
 });
 
 
-
+function contemPalavrasProibidasFrontend(texto) {
+    if (!texto) return false;
+    const textoLower = texto.toLowerCase();
+    return palavrasProibidasFrontend.some(p => textoLower.includes(p));
+}
 
 // CENSURA ==
 
@@ -659,15 +641,16 @@ app.post('/posts', (req, res) => {
     res.json(newPost);
 });
 
-app.delete('/posts/:postId', autenticar, (req, res) => {
+app.delete('/posts/:postId', (req, res) => {
     const { postId } = req.params;
-    const userId = req.userId; 
+    const { userId } = req.body;
     const db = readDB();
     
     const postIndex = db.posts.findIndex(p => p.id === postId);
     if (postIndex !== -1 && db.posts[postIndex].userId === userId) {
         const deletedPost = db.posts.splice(postIndex, 1)[0];
         writeDB(db);
+        
         broadcastUpdate('post_deleted', { postId, userId });
         res.json({ success: true, message: 'Post excluído com sucesso!' });
     } else {
@@ -931,9 +914,9 @@ app.post('/posts/retweet', (req, res) => {
 
 // DELETE COMMENT
 
-app.delete('/posts/:postId/comments/:commentId', autenticar, (req, res) => {
+app.delete('/posts/:postId/comments/:commentId', (req, res) => {
     const { postId, commentId } = req.params;
-    const userId = req.userId;
+    const { userId } = req.body;
     const db = readDB();
 
     const post = db.posts.find(p => String(p.id) === String(postId));
@@ -947,23 +930,26 @@ app.delete('/posts/:postId/comments/:commentId', autenticar, (req, res) => {
 
     post.comments.splice(commentIndex, 1);
     writeDB(db);
+
     broadcastUpdate('comment_deleted', { postId, commentId });
     res.json({ success: true });
 });
 
-
-app.delete('/messages/:messageId', autenticar, (req, res) => {
+// ENDPOINT DELETE MESSAGE 
+app.delete('/messages/:messageId', (req, res) => {
     const { messageId } = req.params;
-    const userId = req.userId;
+    const { userId } = req.body;
     const db = readDB();
     
     const messageIndex = db.messages.findIndex(m => m.id === messageId);
     
     if (messageIndex !== -1) {
         const message = db.messages[messageIndex];
+        // Verificar se o usuário é o remetente da mensagem
         if (message.from === userId) {
             db.messages.splice(messageIndex, 1);
             writeDB(db);
+            
             broadcastUpdate('message_deleted', { messageId });
             res.json({ success: true, message: 'Mensagem excluída com sucesso!' });
         } else {
@@ -973,9 +959,9 @@ app.delete('/messages/:messageId', autenticar, (req, res) => {
         res.status(404).json({ error: "Mensagem não encontrada" });
     }
 });
+// == ENDPOINT DELETE MESSAGE 
 
-
-
+//  ENDPOINT LIKE MESSAGE 
 app.post('/messages/:messageId/like', (req, res) => {
     const { messageId } = req.params;
     const { userId } = req.body;

@@ -524,8 +524,7 @@ async function login() {
 
         if (res.ok) {
             currentUser = data.user;
-             localStorage.setItem('user', JSON.stringify(currentUser));
-            localStorage.setItem('token', data.token);
+            localStorage.setItem('user', JSON.stringify(currentUser));
             showToast(`Bem-vindo, ${currentUser.username}! 👋`, 'success');
             showApp();
         } else {
@@ -578,7 +577,6 @@ async function register() {
         if (res.ok) {
             currentUser = data.user;
             localStorage.setItem('user', JSON.stringify(currentUser));
-            localStorage.setItem('token', data.token);
             showToast(`Conta criada! Bem-vindo, ${currentUser.username}! 🎉`, 'success');
             showApp();
         } else {
@@ -1034,10 +1032,8 @@ async function deletePost(postId) {
     try {
         const res = await fetch(`${API_URL}/posts/${postId}`, {
             method: 'DELETE',
-            headers: {
-                'Content-Type':'application/json',
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
-            }
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({ userId: currentUser.id })
         });
         if (res.ok) { showToast('Post excluído', 'success'); loadPosts(); }
         else showToast('Sem permissão para excluir', 'error');
@@ -1298,12 +1294,14 @@ async function updateProfile() {
     const location = document.getElementById('edit-location')?.value;
     const website  = document.getElementById('edit-website')?.value;
 
+    // Avatar
     let avatar = document.getElementById('edit-avatar-url')?.value;
     const avatarFile = document.getElementById('edit-avatar-file');
     if (avatarFile?.files[0]) {
         avatar = await comprimirImagem(avatarFile.files[0], 400, 0.8);
     }
 
+    // Capa
     let coverImage = document.getElementById('edit-cover-url')?.value;
     const coverFile = document.getElementById('edit-cover-file');
     if (coverFile?.files[0]) {
@@ -1313,43 +1311,38 @@ async function updateProfile() {
     try {
         const res = await fetch(`${API_URL}/users/${currentUser.id}`, {
             method: 'PATCH',
-            headers: {
-                'Content-Type':'application/json',
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
-            },
+            headers: {'Content-Type':'application/json'},
             body: JSON.stringify({ avatar, coverImage, bio, location, website })
         });
+       if (res.ok) {
+    currentUser = await res.json();
+    localStorage.setItem('user', JSON.stringify(currentUser));
+    showToast('Perfil atualizado! ✅', 'success');
+    updateUI();
 
-        if (res.ok) {
-            currentUser = await res.json();
-            localStorage.setItem('user', JSON.stringify(currentUser));
-            showToast('Perfil atualizado! ✅', 'success');
-            updateUI();
+    // Muda o botão para verde
+    const btn = document.querySelector('.edit-profile-section .btn-primary-sm');
+    if (btn) {
+        btn.style.background = '#10b981';
+        btn.style.boxShadow  = '0 4px 20px rgba(16,185,129,0.4)';
+        btn.innerHTML = '<i class="fas fa-check"></i> Salvo!';
+        
+        setTimeout(() => {
+            btn.style.background = '';
+            btn.style.boxShadow  = '';
+            btn.innerHTML = '<i class="fas fa-save"></i> Salvar Alterações';
+        }, 3000);
+    }
 
-            const btn = document.querySelector('.edit-profile-section .btn-primary-sm');
-            if (btn) {
-                btn.style.background = '#10b981';
-                btn.style.boxShadow  = '0 4px 20px rgba(16,185,129,0.4)';
-                btn.innerHTML = '<i class="fas fa-check"></i> Salvo!';
-                
-                setTimeout(() => {
-                    btn.style.background = '';
-                    btn.style.boxShadow  = '';
-                    btn.innerHTML = '<i class="fas fa-save"></i> Salvar Alterações';
-                }, 3000);
-            }
-
-            loadProfileData(currentUser.id);
-        } else if (res.status === 400) {
-            const data = await res.json();
-            showToast(data.error, 'error');
-        } else {
-            showToast('Erro ao atualizar perfil', 'error');
-        }
+loadProfileData(currentUser.id);
+} else if (res.status === 400) {
+    const data = await res.json();
+    showToast(data.error, 'error');
+} else {
+    showToast('Erro ao atualizar perfil', 'error');
+}
     } catch { showToast('Erro ao atualizar perfil', 'error'); }
 }
-
-
 async function comprimirImagem(file, maxWidth = 1200, qualidade = 0.7) {
     return new Promise((resolve) => {
         const reader = new FileReader();
@@ -1656,10 +1649,8 @@ async function deleteComment(postId, commentId) {
     try {
         const res = await fetch(`${API_URL}/posts/${postId}/comments/${commentId}`, {
             method: 'DELETE',
-            headers: {
-                'Content-Type':'application/json',
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
-            }
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({ userId: currentUser.id })
         });
         if (res.ok) { showToast('Comentário excluído', 'success'); loadPosts(); }
         else showToast('Sem permissão', 'error');
@@ -1695,10 +1686,8 @@ async function deleteMessage(msgId) {
     try {
         const res = await fetch(`${API_URL}/messages/${msgId}`, {
             method: 'DELETE',
-            headers: {
-                'Content-Type':'application/json',
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
-            }
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({ userId: currentUser.id })
         });
         if (res.ok) { showToast('Mensagem excluída', 'success'); openConversation(currentConversation); }
     } catch { /* silent */ }
@@ -2129,3 +2118,4 @@ function stopPolling() {
     pollingInterval = null;
 }
 
+s
