@@ -1,4 +1,4 @@
-const fetch = require('node-fetch');
+
 require('dotenv').config();
 
 const express = require('express');
@@ -124,25 +124,34 @@ function validarCadastro(dados) {
 app.post('/register', async (req, res) => {
     const { username, password, email, nomeCompleto, telefone, dataNascimento, termoAceito, 'cf-turnstile-response': token } = req.body;
 
-    
-    const verify = await fetch(
-        'https://challenges.cloudflare.com/turnstile/v0/siteverify',
-        {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: new URLSearchParams({
-                secret: process.env.TURNSTILE_SECRET_KEY,
-                response: token
-            })
+    try {
+        if (!token) {
+            return res.status(400).json({ error: 'Confirme que você não é um robô!' });
         }
-    );
-    const captchaData = await verify.json();
-    if (!captchaData.success) {
-        return res.status(403).json({ error: 'Captcha inválido!' });
-    }
 
-    if (!termoAceito)
-        return res.status(400).json({ error: 'Você precisa aceitar os Termos de Uso!' });
+        const fetch = (await import('node-fetch')).default;
+
+        const verify = await fetch(
+            'https://challenges.cloudflare.com/turnstile/v0/siteverify',
+            {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: new URLSearchParams({
+                    secret: process.env.TURNSTILE_SECRET_KEY,
+                    response: token
+                })
+            }
+        );
+
+        const data = await verify.json();
+
+        if (!data.success) {
+            return res.status(403).json({ error: 'Captcha inválido!' });
+        }
+    } catch (err) {
+        console.error('Erro ao validar captcha:', err);
+        return res.status(500).json({ error: 'Erro ao validar captcha. Tente novamente.' });
+    }
 
     if (!termoAceito)
         return res.status(400).json({ error: 'Você precisa aceitar os Termos de Uso!' });
@@ -152,7 +161,6 @@ app.post('/register', async (req, res) => {
 
     if (contemPalavrasProibidas(username))
         return res.status(400).json({ error: 'Nome de usuário contém conteúdo inapropriado!' });
-
 
     const erro = validarCadastro({ username, password, email, nomeCompleto, telefone, dataNascimento });
     if (erro) return res.status(400).json({ error: erro });
@@ -196,26 +204,36 @@ app.post('/register', async (req, res) => {
 app.post('/login', async (req, res) => {
     const { username, password, 'cf-turnstile-response': token } = req.body;
 
-    // 1. VALIDAR TURNSTILE
-    const verify = await fetch(
-        'https://challenges.cloudflare.com/turnstile/v0/siteverify',
-        {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: new URLSearchParams({
-                secret: process.env.TURNSTILE_SECRET_KEY,
-                response: token
-            })
+    try {
+        if (!token) {
+            return res.status(400).json({ error: 'Confirme que você não é um robô!' });
         }
-    );
 
-    const data = await verify.json();
+        const fetch = (await import('node-fetch')).default;
 
-    if (!data.success) {
-        return res.status(403).json({ error: 'Captcha inválido!' });
+        const verify = await fetch(
+            'https://challenges.cloudflare.com/turnstile/v0/siteverify',
+            {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: new URLSearchParams({
+                    secret: process.env.TURNSTILE_SECRET_KEY,
+                    response: token
+                })
+            }
+        );
+
+        const data = await verify.json();
+
+        if (!data.success) {
+            return res.status(403).json({ error: 'Captcha inválido!' });
+        }
+    } catch (err) {
+        console.error('Erro ao validar captcha:', err);
+        return res.status(500).json({ error: 'Erro ao validar captcha. Tente novamente.' });
     }
 
-    // 2. LOGIN NORMAL (SE CAPTCHA OK)
+    // LOGIN NORMAL (SE CAPTCHA OK)
     const db = readDB();
 
     const user = db.users.find(u =>
