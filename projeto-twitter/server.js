@@ -1,3 +1,6 @@
+const fetch = require('node-fetch');
+require('dotenv').config();
+
 const express = require('express');
 const fs = require('fs');
 const cors = require('cors');
@@ -169,9 +172,30 @@ app.post('/register', async (req, res) => {
     res.json({ user: userPublico });
 });
 
-// LOGIN
+// LOGIN ALTERADO
 app.post('/login', async (req, res) => {
-    const { username, password } = req.body;
+    const { username, password, 'cf-turnstile-response': token } = req.body;
+
+    // 1. VALIDAR TURNSTILE
+    const verify = await fetch(
+        'https://challenges.cloudflare.com/turnstile/v0/siteverify',
+        {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({
+                secret: process.env.TURNSTILE_SECRET_KEY,
+                response: token
+            })
+        }
+    );
+
+    const data = await verify.json();
+
+    if (!data.success) {
+        return res.status(403).json({ error: 'Captcha inválido!' });
+    }
+
+    // 2. LOGIN NORMAL (SE CAPTCHA OK)
     const db = readDB();
 
     const user = db.users.find(u =>
