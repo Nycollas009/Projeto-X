@@ -720,10 +720,11 @@ function openGifPicker() {
         position:fixed; inset:0; background:rgba(0,0,0,0.8);
         z-index:9999; display:flex; align-items:center; justify-content:center;
         backdrop-filter:blur(8px);
+        
     `;
 
     modal.innerHTML = `
-        <div style="background:var(--bg-card);border-radius:var(--radius-xl);padding:24px;width:480px;max-height:80vh;display:flex;flex-direction:column;gap:16px;border:1px solid var(--border);">
+        <div style="background:var(--bg-card);border-radius:var(--radius-xl);padding:24px;width:min(480px, 92vw);max-height:80vh;display:flex;flex-direction:column;gap:16px;border:1px solid var(--border);">
             <div style="display:flex;justify-content:space-between;align-items:center;">
                 <h3 style="font-weight:800;">Escolher GIF</h3>
                 <span onclick="document.getElementById('gif-picker-modal').remove()" style="cursor:pointer;font-size:1.5rem;color:var(--text-secondary);">&times;</span>

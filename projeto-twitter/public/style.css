@@ -1521,6 +1521,34 @@ emoji-picker.active { display: block; animation: postIn 0.2s ease; }
 }
 
 @media (max-width: 640px) {
+    
+     /* Login/Cadastro responsivo */
+    .tela-login.active {
+        width: 92vw;
+        max-width: 400px;
+        padding: 32px 20px;
+        border-radius: 24px;
+    }
+
+    /* Mensagens: empilha lista de conversas em cima do chat, em vez de lado a lado */
+    .messages-container {
+        flex-direction: column;
+        height: calc(100vh - 140px);
+    }
+    .conversations-list {
+        width: 100%;
+        max-height: 35vh;
+        border-right: none;
+        border-bottom: 1px solid var(--border);
+    }
+    .messages-area {
+        min-height: 0;
+    }
+
+    /* Emoji picker não pode passar da largura da tela */
+    emoji-picker {
+        width: min(320px, 90vw) !important;
+    }
     .sidebar-nav {
         position: fixed;
         bottom: 0; top: auto; left: 0; right: 0;
