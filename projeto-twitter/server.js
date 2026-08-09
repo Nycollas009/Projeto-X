@@ -7,6 +7,7 @@ const http = require('http');
 const WebSocket = require('ws');
 const jwt = require('jsonwebtoken'); // npm install jsonwebtoken
 const bcrypt = require('bcrypt');
+const helmet = require('helmet'); // npm install helmet
 
 const app    = express();
 const server = http.createServer(app);
@@ -19,7 +20,31 @@ if (!JWT_SECRET) {
     process.exit(1);
 }
 
-app.use(cors());
+// Helmet adiciona vários cabeçalhos de segurança de uma vez (evita clickjacking,
+// esconde que é Express, evita sniffing de MIME type, etc).
+// contentSecurityPolicy fica desligado porque o front usa fontes/ícones de CDNs
+// externos (Google Fonts, cdnjs, Cloudflare Turnstile) e uma CSP restrita
+// quebraria esses recursos sem configuração adicional — mas todos os outros
+// cabeçalhos do helmet continuam ativos.
+app.use(helmet({ contentSecurityPolicy: false }));
+
+// Só os domínios abaixo podem chamar essa API diretamente pelo navegador.
+// Antes, cors() sem opções liberava geral para qualquer site.
+const origensPermitidas = [
+    'https://meu-twitter-projeto-x.onrender.com', // seu site em produção
+    'http://localhost:3000',                       // teste local
+];
+app.use(cors({
+    origin: (origin, callback) => {
+        // requisições sem "origin" (ex: apps mobile, curl, Postman) continuam liberadas;
+        // isso é comum e não é o que queremos bloquear aqui.
+        if (!origin || origensPermitidas.includes(origin)) {
+            callback(null, true);
+        } else {
+            callback(new Error('Origem não permitida pelo CORS'));
+        }
+    }
+}));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
 app.use(express.static('public'));
