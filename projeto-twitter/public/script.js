@@ -1,4 +1,3 @@
-
 //  Tiwitter SOCIAL — script.js (v2 — fixed)
 
 console.log('🚀 Tiwitter Social v2 — Carregando...');
@@ -6,6 +5,7 @@ console.log('🚀 Tiwitter Social v2 — Carregando...');
 const API_URL = 'https://meu-twitter-projeto-x.onrender.com';
 
 let currentUser        = null;
+let authToken          = localStorage.getItem('authToken') || null;
 let ws                 = null;
 let currentView        = 'home';
 let currentConversation= null;
@@ -24,13 +24,17 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log('📱 DOM Carregado');
 
     const saved = localStorage.getItem('user');
-    if (saved) {
+    if (saved && authToken) {
         try {
             currentUser = JSON.parse(saved);
             showApp();
         } catch (e) {
             localStorage.removeItem('user');
+            localStorage.removeItem('authToken');
         }
+    } else if (saved && !authToken) {
+        // Sessão antiga sem token (versão pré-JWT) — força novo login.
+        localStorage.removeItem('user');
     }
 
     setupEventListeners();
@@ -143,6 +147,12 @@ function getAvatarUrl(avatarUrl, username = '') {
     
     // Fallback: avatar SVG puro
     return AVATAR_PADRAO_FIXO;
+}
+
+// Monta os headers de autenticação pra chamadas protegidas da API.
+// Toda rota que exige login precisa disso — sem ele o servidor responde 401.
+function authHeaders() {
+    return authToken ? { 'Authorization': `Bearer ${authToken}` } : {};
 }
 
 // Função para tratar erro de carregamento da imagem
@@ -383,7 +393,9 @@ function insertAtCursor(el, text) {
 // ════════════════════════════════════════
 function logout() {
     localStorage.removeItem('user');
+    localStorage.removeItem('authToken');
     localStorage.removeItem('savedPosts');
+    authToken = null;
     location.reload();
 }
 
@@ -524,7 +536,9 @@ async function login() {
 
         if (res.ok) {
             currentUser = data.user;
+            authToken   = data.token;
             localStorage.setItem('user', JSON.stringify(currentUser));
+            localStorage.setItem('authToken', authToken);
             showToast(`Bem-vindo, ${currentUser.username}! 👋`, 'success');
             showApp();
         } else {
@@ -576,7 +590,9 @@ async function register() {
 
         if (res.ok) {
             currentUser = data.user;
+            authToken   = data.token;
             localStorage.setItem('user', JSON.stringify(currentUser));
+            localStorage.setItem('authToken', authToken);
             showToast(`Conta criada! Bem-vindo, ${currentUser.username}! 🎉`, 'success');
             showApp();
         } else {
@@ -798,9 +814,8 @@ async function createPost() {
     try {
         const res = await fetch(`${API_URL}/posts`, {
             method: 'POST',
-            headers: {'Content-Type':'application/json'},
+            headers: {'Content-Type':'application/json', ...authHeaders()},
             body: JSON.stringify({
-                userId:   currentUser.id,
                 username: currentUser.username,
                 avatar:   currentUser.avatar,
                 content,
@@ -955,8 +970,8 @@ async function likePost(postId) {
     try {
          const res = await fetch(`${API_URL}/posts/like`, { 
             method: 'POST',
-            headers: {'Content-Type':'application/json'},
-            body: JSON.stringify({ postId, userId: currentUser.id })
+            headers: {'Content-Type':'application/json', ...authHeaders()},
+            body: JSON.stringify({ postId })
         });
         if (res.ok) {
             const data = await res.json();
@@ -1002,8 +1017,8 @@ async function retweet(postId) {
     try {
         const res = await fetch(`${API_URL}/posts/retweet`, { 
             method: 'POST',
-            headers: {'Content-Type':'application/json'},
-            body: JSON.stringify({ postId, userId: currentUser.id })
+            headers: {'Content-Type':'application/json', ...authHeaders()},
+            body: JSON.stringify({ postId })
         });
         if (res.ok) {
             const data    = await res.json();
@@ -1032,7 +1047,7 @@ async function deletePost(postId) {
     try {
         const res = await fetch(`${API_URL}/posts/${postId}`, {
             method: 'DELETE',
-            headers: {'Content-Type':'application/json'},
+            headers: {'Content-Type':'application/json', ...authHeaders()},
             body: JSON.stringify({ userId: currentUser.id })
         });
         if (res.ok) { showToast('Post excluído', 'success'); loadPosts(); }
@@ -1047,10 +1062,9 @@ async function addComment(postId) {
     try {
         const res = await fetch(`${API_URL}/posts/comment`, {
             method: 'POST',
-            headers: {'Content-Type':'application/json'},
+            headers: {'Content-Type':'application/json', ...authHeaders()},
             body: JSON.stringify({
                 postId,
-                userId:   currentUser.id,
                 username: currentUser.username,
                 avatar:   currentUser.avatar,
                 content
@@ -1122,8 +1136,8 @@ async function toggleFollow(userId) {
     try {
         const res  = await fetch(`${API_URL}${endpoint}`, {
             method: 'POST',
-            headers: {'Content-Type':'application/json'},
-            body: JSON.stringify({ followerId: currentUser.id, followingId: userId })
+            headers: {'Content-Type':'application/json', ...authHeaders()},
+            body: JSON.stringify({ followingId: userId })
         });
         if (res.ok) {
             const data = await res.json();
@@ -1311,7 +1325,7 @@ async function updateProfile() {
     try {
         const res = await fetch(`${API_URL}/users/${currentUser.id}`, {
             method: 'PATCH',
-            headers: {'Content-Type':'application/json'},
+            headers: {'Content-Type':'application/json', ...authHeaders()},
             body: JSON.stringify({ avatar, coverImage, bio, location, website })
         });
        if (res.ok) {
@@ -1607,7 +1621,7 @@ async function openConversation(userId) {
         document.getElementById('message-input')?.addEventListener('keypress', e => { if (e.key === 'Enter') sendMessage(); });
         setupChatEmojiPicker();
 
-        const mRes  = await fetch(`${API_URL}/messages/${currentUser.id}/${userId}`);
+        const mRes  = await fetch(`${API_URL}/messages/${currentUser.id}/${userId}`, { headers: authHeaders() });
         const msgs  = await mRes.json();
 
         const msgList = document.getElementById('messages-list');
@@ -1649,7 +1663,7 @@ async function deleteComment(postId, commentId) {
     try {
         const res = await fetch(`${API_URL}/posts/${postId}/comments/${commentId}`, {
             method: 'DELETE',
-            headers: {'Content-Type':'application/json'},
+            headers: {'Content-Type':'application/json', ...authHeaders()},
             body: JSON.stringify({ userId: currentUser.id })
         });
         if (res.ok) { showToast('Comentário excluído', 'success'); loadPosts(); }
@@ -1664,8 +1678,8 @@ async function sendMessage() {
     try {
         const res = await fetch(`${API_URL}/messages`, {
             method: 'POST',
-            headers: {'Content-Type':'application/json'},
-            body: JSON.stringify({ from: currentUser.id, to: currentConversation, content })
+            headers: {'Content-Type':'application/json', ...authHeaders()},
+            body: JSON.stringify({ to: currentConversation, content })
           });
         if (res.ok) { 
             input.value = ''; 
@@ -1686,7 +1700,7 @@ async function deleteMessage(msgId) {
     try {
         const res = await fetch(`${API_URL}/messages/${msgId}`, {
             method: 'DELETE',
-            headers: {'Content-Type':'application/json'},
+            headers: {'Content-Type':'application/json', ...authHeaders()},
             body: JSON.stringify({ userId: currentUser.id })
         });
         if (res.ok) { showToast('Mensagem excluída', 'success'); openConversation(currentConversation); }
@@ -1697,7 +1711,7 @@ async function likeMessage(msgId) {
     try {
         const res  = await fetch(`${API_URL}/messages/${msgId}/like`, {
             method: 'POST',
-            headers: {'Content-Type':'application/json'},
+            headers: {'Content-Type':'application/json', ...authHeaders()},
             body: JSON.stringify({ userId: currentUser.id })
         });
         if (res.ok) openConversation(currentConversation);
@@ -1710,7 +1724,7 @@ async function likeMessage(msgId) {
 // ════════════════════════════════════════
 async function loadNotifications() {
     try {
-        const res   = await fetch(`${API_URL}/notifications/${currentUser.id}`);
+        const res   = await fetch(`${API_URL}/notifications/${currentUser.id}`, { headers: authHeaders() });
         const notifs= await res.json();
         const list  = document.getElementById('notifications-list');
         if (!list) return;
@@ -1743,7 +1757,7 @@ async function loadNotifications() {
 async function markNotificationRead(id) {
     try {
         const res = await fetch(`${API_URL}/notifications/${id}/read`, {
-            method: 'POST', headers: {'Content-Type':'application/json'}
+            method: 'POST', headers: {'Content-Type':'application/json', ...authHeaders()}
         });
         if (res.ok) {
             if (unreadNotificationsCount > 0) unreadNotificationsCount--;
@@ -1888,7 +1902,14 @@ function connectWebSocket() {
      const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
     const wsUrl = `${protocol}://${window.location.host}`;
         ws = new WebSocket('wss://meu-twitter-projeto-x.onrender.com');
-        ws.onopen  = () => console.log('✅ WebSocket conectado');
+        ws.onopen  = () => {
+            console.log('✅ WebSocket conectado');
+            // Diz ao servidor quem somos, pra ele conseguir mandar
+            // mensagens/notificações privadas só pra este socket.
+            if (currentUser?.id) {
+                ws.send(JSON.stringify({ type: 'identify', userId: currentUser.id }));
+            }
+        };
         ws.onmessage = (event) => {
             try {
                 console.log('RAW:', event.data);
@@ -2117,4 +2138,3 @@ function stopPolling() {
     clearInterval(pollingInterval);
     pollingInterval = null;
 }
-

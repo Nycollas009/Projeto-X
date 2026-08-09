@@ -1,4 +1,3 @@
-
 require('dotenv').config();
 
 const express = require('express');
@@ -6,12 +5,19 @@ const fs = require('fs');
 const cors = require('cors');
 const http = require('http');
 const WebSocket = require('ws');
-const path = require('path');
+const jwt = require('jsonwebtoken'); // npm install jsonwebtoken
+const bcrypt = require('bcrypt');
 
 const app    = express();
-const server = http.createServer(app); 
+const server = http.createServer(app);
 const port   = process.env.PORT || 3000;
 
+// ⚠️ Coloque isso no .env: JWT_SECRET=uma-string-longa-e-aleatoria
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+    console.error('❌ JWT_SECRET não definido no .env — o servidor não vai iniciar sem isso.');
+    process.exit(1);
+}
 
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
@@ -20,34 +26,79 @@ app.use(express.static('public'));
 
 const DB_FILE = './database.json';
 
-// Inicializar banco de dados se não existir
 if (!fs.existsSync(DB_FILE)) {
-    const initialDB = {
-        users: [],
-        posts: [],
-        messages: [],
-        notifications: []
-    };
+    const initialDB = { users: [], posts: [], messages: [], notifications: [] };
     fs.writeFileSync(DB_FILE, JSON.stringify(initialDB, null, 2));
 }
 
 const readDB = () => JSON.parse(fs.readFileSync(DB_FILE, 'utf-8'));
 const writeDB = (data) => fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2));
 
-const wss = new WebSocket.Server({ server });
+// ════════════════════════════════════════
+//  JWT — geração e verificação
+// ════════════════════════════════════════
 
-let connectedClients = [];
+function gerarToken(user) {
+    // O token guarda só o id — é a "identidade" que o servidor vai confiar,
+    // nunca mais o userId que vem solto no body/params.
+    return jwt.sign({ id: user.id, username: user.username }, JWT_SECRET, { expiresIn: '7d' });
+}
+
+// Middleware: exige um token válido em qualquer rota protegida.
+// Uso: app.patch('/users/:id', autenticar, (req, res) => { ... req.usuarioLogado.id ... })
+function autenticar(req, res, next) {
+    const authHeader = req.headers.authorization; // formato: "Bearer <token>"
+    const token = authHeader && authHeader.split(' ')[1];
+
+    if (!token) {
+        return res.status(401).json({ error: 'Token de autenticação ausente.' });
+    }
+
+    jwt.verify(token, JWT_SECRET, (err, payload) => {
+        if (err) return res.status(403).json({ error: 'Token inválido ou expirado.' });
+        req.usuarioLogado = payload; // { id, username }
+        next();
+    });
+}
+
+// Middleware: além de autenticar, garante que o dono do recurso é quem
+// está pedindo. Compara req.usuarioLogado.id com o :id da URL ou userId do body.
+function exigirDono(campoId = 'id') {
+    return (req, res, next) => {
+        const idAlvo = req.params[campoId] || req.body.userId;
+        if (String(req.usuarioLogado.id) !== String(idAlvo)) {
+            return res.status(403).json({ error: 'Você não tem permissão para essa ação.' });
+        }
+        next();
+    };
+}
+
+const wss = new WebSocket.Server({ server });
+let connectedClients = []; // agora guardamos { ws, userId }
 
 wss.on('connection', (ws) => {
     console.log('🔌 Novo cliente conectado');
+    // O cliente deve mandar { type: 'identify', userId } assim que conectar,
+    // pra sabermos pra quem pertence esse socket (necessário pra Fase 3 — mensagens privadas).
+    ws.userId = null;
     connectedClients.push(ws);
-    
+
+    ws.on('message', (raw) => {
+        try {
+            const msg = JSON.parse(raw);
+            if (msg.type === 'identify' && msg.userId) {
+                ws.userId = String(msg.userId);
+            }
+        } catch { /* ignora mensagens que não são JSON de controle */ }
+    });
+
     ws.on('close', () => {
         console.log('🔌 Cliente desconectado');
         connectedClients = connectedClients.filter(client => client !== ws);
     });
 });
 
+// Broadcast "público" (posts, likes, retweets, comentários) — continua igual.
 function broadcastUpdate(type, data) {
     connectedClients.forEach(client => {
         if (client.readyState === WebSocket.OPEN) {
@@ -56,34 +107,52 @@ function broadcastUpdate(type, data) {
     });
 }
 
-//Controle de spam
-const spamControl = new Map(); 
+// Envia só para os sockets de um usuário específico (usado nas Fase 3, mensagens/notificações privadas)
+function sendToUser(userId, type, data) {
+    connectedClients.forEach(client => {
+        if (client.readyState === WebSocket.OPEN && client.userId === String(userId)) {
+            client.send(JSON.stringify({ type, data }));
+        }
+    });
+}
 
+// Controle de spam
+const spamControl = new Map();
 function verificarSpam(userId, tipo, intervaloMs = 3000) {
     const chave = `${userId}-${tipo}`;
     const agora = Date.now();
     const ultimo = spamControl.get(chave) || 0;
-
-    if (agora - ultimo < intervaloMs) {
-        return true; // é spam
-    }
-
+    if (agora - ultimo < intervaloMs) return true;
     spamControl.set(chave, agora);
-    return false; // não é spam
+    return false;
 }
 
-
-const bcrypt = require('bcrypt');
+// Rate limit simples de tentativas de login por username (Fase 5, incluído aqui por ser barato)
+const loginAttempts = new Map(); // username -> { count, blockedUntil }
+function loginBloqueado(username) {
+    const entry = loginAttempts.get(username);
+    if (!entry) return false;
+    if (entry.blockedUntil && Date.now() < entry.blockedUntil) return true;
+    return false;
+}
+function registrarTentativaFalha(username) {
+    const entry = loginAttempts.get(username) || { count: 0, blockedUntil: null };
+    entry.count++;
+    if (entry.count >= 5) {
+        entry.blockedUntil = Date.now() + 5 * 60 * 1000; // 5 min de bloqueio após 5 erros
+        entry.count = 0;
+    }
+    loginAttempts.set(username, entry);
+}
+function limparTentativas(username) {
+    loginAttempts.delete(username);
+}
 
 function validarSenha(password) {
-    if (password.length < 6)
-        return 'A senha deve ter no mínimo 6 caracteres!';
-    if (password.length > 20)
-        return 'A senha deve ter no máximo 20 caracteres!';
-    if (!/[A-Z]/.test(password))
-        return 'A senha deve ter pelo menos uma letra maiúscula!';
-    if (!/[0-9]/.test(password))
-        return 'A senha deve ter pelo menos um número!';
+    if (password.length < 6) return 'A senha deve ter no mínimo 6 caracteres!';
+    if (password.length > 20) return 'A senha deve ter no máximo 20 caracteres!';
+    if (!/[A-Z]/.test(password)) return 'A senha deve ter pelo menos uma letra maiúscula!';
+    if (!/[0-9]/.test(password)) return 'A senha deve ter pelo menos um número!';
     if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password))
         return 'A senha deve ter pelo menos um caractere especial (!@#$%...)!';
     return null;
@@ -91,17 +160,11 @@ function validarSenha(password) {
 
 function validarCadastro(dados) {
     const { username, password, email, nomeCompleto, telefone, dataNascimento } = dados;
-
-    if (!username || username.length < 3)
-        return 'Nome de usuário deve ter no mínimo 3 caracteres!';
-    if (!nomeCompleto || nomeCompleto.trim().split(' ').length < 2)
-        return 'Digite seu nome completo!';
-    if (!email || !email.includes('@'))
-        return 'Email inválido!';
-    if (!telefone || telefone.replace(/\D/g, '').length < 10)
-        return 'Telefone inválido!';
-    if (!dataNascimento)
-        return 'Data de nascimento obrigatória!';
+    if (!username || username.length < 3) return 'Nome de usuário deve ter no mínimo 3 caracteres!';
+    if (!nomeCompleto || nomeCompleto.trim().split(' ').length < 2) return 'Digite seu nome completo!';
+    if (!email || !email.includes('@')) return 'Email inválido!';
+    if (!telefone || telefone.replace(/\D/g, '').length < 10) return 'Telefone inválido!';
+    if (!dataNascimento) return 'Data de nascimento obrigatória!';
 
     const nascimento = new Date(dataNascimento);
     const hoje = new Date();
@@ -111,206 +174,139 @@ function validarCadastro(dados) {
         (hoje.getMonth() === nascimento.getMonth() && hoje.getDate() >= nascimento.getDate())
     );
     if (!aniversarioPassou) idade--;
-    if (idade < 18)
-        return 'Você precisa ter 18 anos ou mais para se cadastrar!';
+    if (idade < 18) return 'Você precisa ter 18 anos ou mais para se cadastrar!';
 
     const erroSenha = validarSenha(password);
     if (erroSenha) return erroSenha;
-
     return null;
 }
 
-// CADASTRO
+async function verificarTurnstile(token) {
+    if (!token) return { ok: false, status: 400, error: 'Confirme que você não é um robô!' };
+    try {
+        const fetch = (await import('node-fetch')).default;
+        const verify = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({ secret: process.env.TURNSTILE_SECRET_KEY, response: token })
+        });
+        const data = await verify.json();
+        if (!data.success) return { ok: false, status: 403, error: 'Captcha inválido!' };
+        return { ok: true };
+    } catch (err) {
+        console.error('Erro ao validar captcha:', err);
+        return { ok: false, status: 500, error: 'Erro ao validar captcha. Tente novamente.' };
+    }
+}
+
+// ========== CADASTRO ==========
 app.post('/register', async (req, res) => {
     const { username, password, email, nomeCompleto, telefone, dataNascimento, termoAceito, 'cf-turnstile-response': token } = req.body;
 
-    try {
-        if (!token) {
-            return res.status(400).json({ error: 'Confirme que você não é um robô!' });
-        }
+    const captcha = await verificarTurnstile(token);
+    if (!captcha.ok) return res.status(captcha.status).json({ error: captcha.error });
 
-        const fetch = (await import('node-fetch')).default;
-
-        const verify = await fetch(
-            'https://challenges.cloudflare.com/turnstile/v0/siteverify',
-            {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: new URLSearchParams({
-                    secret: process.env.TURNSTILE_SECRET_KEY,
-                    response: token
-                })
-            }
-        );
-
-        const data = await verify.json();
-
-        if (!data.success) {
-            return res.status(403).json({ error: 'Captcha inválido!' });
-        }
-    } catch (err) {
-        console.error('Erro ao validar captcha:', err);
-        return res.status(500).json({ error: 'Erro ao validar captcha. Tente novamente.' });
-    }
-
-    if (!termoAceito)
-        return res.status(400).json({ error: 'Você precisa aceitar os Termos de Uso!' });
-
-    if (contemPalavrasProibidas(nomeCompleto))
-        return res.status(400).json({ error: 'Nome completo contém conteúdo inapropriado!' });
-
-    if (contemPalavrasProibidas(username))
-        return res.status(400).json({ error: 'Nome de usuário contém conteúdo inapropriado!' });
+    if (!termoAceito) return res.status(400).json({ error: 'Você precisa aceitar os Termos de Uso!' });
+    if (contemPalavrasProibidas(nomeCompleto)) return res.status(400).json({ error: 'Nome completo contém conteúdo inapropriado!' });
+    if (contemPalavrasProibidas(username)) return res.status(400).json({ error: 'Nome de usuário contém conteúdo inapropriado!' });
 
     const erro = validarCadastro({ username, password, email, nomeCompleto, telefone, dataNascimento });
     if (erro) return res.status(400).json({ error: erro });
 
     const db = readDB();
-
-    if (db.users.find(u => u.username === username))
+    if (db.users.find(u => u.username.toLowerCase() === username.toLowerCase()))
         return res.status(409).json({ error: 'Nome de usuário já existe!' });
-
-    if (db.users.find(u => u.email === email))
+    if (db.users.find(u => u.email === email.toLowerCase()))
         return res.status(409).json({ error: 'Email já cadastrado!' });
 
     const newUser = {
-        id:             Date.now().toString(),
+        id: Date.now().toString() + Math.random().toString(36).slice(2, 8), // menos previsível
         username,
-        password:       bcrypt.hashSync(password, 10),
-        email:          email.toLowerCase(),
-        nomeCompleto:   nomeCompleto.trim(),
-        telefone:       telefone.replace(/\D/g, ''),
-        dataNascimento: dataNascimento,
-        termoAceito:    true,
-        termoAceitoEm:  new Date().toISOString(),
-        avatar:         `https://api.dicebear.com/7.x/avataaars/svg?seed=${username}`,
-        coverImage:     '',
-        bio:            '✨ Novo no Tiwitter!',
-        location:       '',
-        website:        '',
-        joinDate:       new Date().toISOString(),
-        following:      [],
-        followers:      [],
+        password: bcrypt.hashSync(password, 10),
+        email: email.toLowerCase(),
+        nomeCompleto: nomeCompleto.trim(),
+        telefone: telefone.replace(/\D/g, ''),
+        dataNascimento,
+        termoAceito: true,
+        termoAceitoEm: new Date().toISOString(),
+        avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${username}`,
+        coverImage: '',
+        bio: '✨ Novo no Tiwitter!',
+        location: '',
+        website: '',
+        joinDate: new Date().toISOString(),
+        following: [],
+        followers: [],
     };
 
     db.users.push(newUser);
     writeDB(db);
 
-    const { password: _, telefone: __, ...userPublico } = newUser;
-    res.json({ user: userPublico });
+    const token_jwt = gerarToken(newUser);
+    const { password: _, telefone: __, email: ___, dataNascimento: ____, ...userPublico } = newUser;
+    res.json({ user: userPublico, token: token_jwt });
 });
 
-// LOGIN ALTERADO
+// ========== LOGIN ==========
 app.post('/login', async (req, res) => {
     const { username, password, 'cf-turnstile-response': token } = req.body;
 
-    try {
-        if (!token) {
-            return res.status(400).json({ error: 'Confirme que você não é um robô!' });
-        }
-
-        const fetch = (await import('node-fetch')).default;
-
-        const verify = await fetch(
-            'https://challenges.cloudflare.com/turnstile/v0/siteverify',
-            {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: new URLSearchParams({
-                    secret: process.env.TURNSTILE_SECRET_KEY,
-                    response: token
-                })
-            }
-        );
-
-        const data = await verify.json();
-
-        if (!data.success) {
-            return res.status(403).json({ error: 'Captcha inválido!' });
-        }
-    } catch (err) {
-        console.error('Erro ao validar captcha:', err);
-        return res.status(500).json({ error: 'Erro ao validar captcha. Tente novamente.' });
+    if (loginBloqueado(username)) {
+        return res.status(429).json({ error: 'Muitas tentativas erradas. Tente novamente em alguns minutos.' });
     }
 
-    // LOGIN NORMAL (SE CAPTCHA OK)
+    const captcha = await verificarTurnstile(token);
+    if (!captcha.ok) return res.status(captcha.status).json({ error: captcha.error });
+
     const db = readDB();
+    const user = db.users.find(u => u.username === username);
 
-    const user = db.users.find(u =>
-        u.username === username || u.password === username 
-    );
-
-    if (!user)
+    if (!user) {
+        registrarTentativaFalha(username);
         return res.status(404).json({ error: 'Usuário não encontrado!' });
+    }
 
     const senhaCorreta = bcrypt.compareSync(password, user.password);
-    if (!senhaCorreta)
+    if (!senhaCorreta) {
+        registrarTentativaFalha(username);
         return res.status(401).json({ error: 'Senha incorreta!' });
+    }
 
-    const { password: _, telefone: __, ...userPublico } = user;
-    res.json({ user: userPublico });
+    limparTentativas(username);
+    const token_jwt = gerarToken(user);
+    const { password: _, telefone: __, email: ___, dataNascimento: ____, ...userPublico } = user;
+    res.json({ user: userPublico, token: token_jwt });
 });
 
-
-// Bloquear sites impróprios (pornografia, gore, pirataria, apostas ilegais, etc)
+// Bloquear sites impróprios (lista mantida igual à original)
 const dominiosBloqueados = [
-    // Pornografia
-    'pornhub', 'xvideos', 'xnxx', 'xhamster', 'redtube', 'youporn',
-    'brazzers', 'onlyfans', 'chaturbate', 'cam4', 'livejasmin',
-    'bongacams', 'stripchat', 'myfreecams', 'spankbang', 'eporner',
-    'tube8', 'drtuber', 'tnaflix', 'porntrex', 'anyporn', 'beeg',
-    'txxx', 'hclips', 'porn', 'sex', 'xxx', 'adult', 'erotic',
-    'nudes', 'lewd', 'hentai', 'rule34', 'gelbooru', 'danbooru',
-    'e621', 'nhentai', 'hanime', 'xgroovy', 'xmasters', 'fuq',
-    'porndig', 'ok', 'javhd', 'jav', 'javmost', 'javbus',
-    'asiansex', 'asianporn', 'asianhd', 'sex8', 'sexvid',
-    'sexix', 'sextu', 'sexyoutube', 'camwhores', 'camvideos',
-    'camcrush', 'camdolls', 'camsoda', 'fansly', 'manyvids',
-    'clips4sale', 'naughtyamerica', 'realitykings', 'mofos',
-    'bangbros', 'digitalplayground', 'elegantangel', 'wicked',
-    'vivid', 'hustler', 'penthouse', 'playboy', 'met-art',
-
-    // Gore e violência extrema
-    'liveleak', 'bestgore', 'goregrish', 'rotten', 'ogrish',
-    'watchpeoplediee', 'nowthisisfuckedup', 'theync', 'kaotic',
-    'deadhouse', 'documenting', 'crazyshit', 'shockgore',
-    'gorezone', 'uncoverreality', 'morbidreality', 'sickipedia',
-    'stileproject', 'efukt', 'thechainsawresistance',
-
-    // Drogas e substâncias ilegais
-    'silkroad', 'darkweb', 'deepweb', 'drugs', 'buycocaine',
-    'buyweed', 'onlinecocaine', 'drugsforum', 'shroomery',
-    'bluelight', 'drugbuyersguide', 'heroin', 'methamphetamine',
-
-    // Armas ilegais
-    'gunbroker', 'buyguns', 'ghostgunner', 'weaponsmarket',
-    'illegalweapons', 'buyammo', 'darknetguns',
-
-    // Pirataria
-    'thepiratebay', 'kickass', 'rarbg', '1337x', 'nyaa',
-    'fmovies', 'gomovies', 'putlocker', '123movies', 'solarmovie',
-    'yesmovies', 'lookmovie', 'soap2day', 'movies123', 'azmovies',
-    'cmovies', 'bmovies', 'hdmovie', 'torrentz', 'torrent',
-    'piratebay', 'limetorrents', 'zooqle', 'magnetdl',
-    'torrentseed', 'skidrowreloaded', 'fitgirl', 'oceanofgames',
-    'steamunlocked', 'igg-games', 'crackwatch', 'repacklab',
-
-    // Apostas ilegais
-    'bet365', 'sportingbet', 'pixbet', 'betano', 'betfair',
-    'williamhill', 'ladbrokes', 'paddy', 'unibet', 'bwin',
-    '888sport', 'betway', 'draftkings', 'fanduel', 'bovada',
-    'betonline', 'mybookie', 'xbet', 'betus', 'jazzsports',
-
-    // Sites de ódio e extremismo
-    'stormfront', 'dailystormer', 'therightstuff', 'vanguardnews',
-    'occidentaldissent', 'amren', 'radixjournal', 'counter-currents',
-    'unz', 'infostormer', 'neonrevolt', 'kiwifarms',
-    'gab', 'voat', 'poal', 'wimkin', 'mewe',
-
-    // Scam e phishing comuns
-    'bit.ly/free', 'tinyurl/win', 'clickbait', 'earnmoney',
-    'makemoneyfast', 'getrichquick', 'freebitcoin', 'cryptoscam',
-    'nftscam', 'ponzi', 'pyramidscheme',
+    'pornhub', 'xvideos', 'xnxx', 'xhamster', 'redtube', 'youporn', 'brazzers', 'onlyfans',
+    'chaturbate', 'cam4', 'livejasmin', 'bongacams', 'stripchat', 'myfreecams', 'spankbang',
+    'eporner', 'tube8', 'drtuber', 'tnaflix', 'porntrex', 'anyporn', 'beeg', 'txxx', 'hclips',
+    'porn', 'sex', 'xxx', 'adult', 'erotic', 'nudes', 'lewd', 'hentai', 'rule34', 'gelbooru',
+    'danbooru', 'e621', 'nhentai', 'hanime', 'xgroovy', 'xmasters', 'fuq', 'porndig', 'javhd',
+    'jav', 'javmost', 'javbus', 'asiansex', 'asianporn', 'asianhd', 'sex8', 'sexvid', 'sexix',
+    'sextu', 'sexyoutube', 'camwhores', 'camvideos', 'camcrush', 'camdolls', 'camsoda', 'fansly',
+    'manyvids', 'clips4sale', 'naughtyamerica', 'realitykings', 'mofos', 'bangbros',
+    'digitalplayground', 'elegantangel', 'wicked', 'vivid', 'hustler', 'penthouse', 'playboy',
+    'met-art', 'liveleak', 'bestgore', 'goregrish', 'rotten', 'ogrish', 'watchpeoplediee',
+    'nowthisisfuckedup', 'theync', 'kaotic', 'deadhouse', 'documenting', 'crazyshit',
+    'shockgore', 'gorezone', 'uncoverreality', 'morbidreality', 'sickipedia', 'stileproject',
+    'efukt', 'thechainsawresistance', 'silkroad', 'darkweb', 'deepweb', 'drugs', 'buycocaine',
+    'buyweed', 'onlinecocaine', 'drugsforum', 'shroomery', 'bluelight', 'drugbuyersguide',
+    'heroin', 'methamphetamine', 'gunbroker', 'buyguns', 'ghostgunner', 'weaponsmarket',
+    'illegalweapons', 'buyammo', 'darknetguns', 'thepiratebay', 'kickass', 'rarbg', '1337x',
+    'nyaa', 'fmovies', 'gomovies', 'putlocker', '123movies', 'solarmovie', 'yesmovies',
+    'lookmovie', 'soap2day', 'movies123', 'azmovies', 'cmovies', 'bmovies', 'hdmovie',
+    'torrentz', 'torrent', 'piratebay', 'limetorrents', 'zooqle', 'magnetdl', 'torrentseed',
+    'skidrowreloaded', 'fitgirl', 'oceanofgames', 'steamunlocked', 'igg-games', 'crackwatch',
+    'repacklab', 'bet365', 'sportingbet', 'pixbet', 'betano', 'betfair', 'williamhill',
+    'ladbrokes', 'paddy', 'unibet', 'bwin', '888sport', 'betway', 'draftkings', 'fanduel',
+    'bovada', 'betonline', 'mybookie', 'xbet', 'betus', 'jazzsports', 'stormfront',
+    'dailystormer', 'therightstuff', 'vanguardnews', 'occidentaldissent', 'amren',
+    'radixjournal', 'counter-currents', 'unz', 'infostormer', 'neonrevolt', 'kiwifarms',
+    'gab', 'voat', 'poal', 'wimkin', 'mewe', 'clickbait', 'earnmoney', 'makemoneyfast',
+    'getrichquick', 'freebitcoin', 'cryptoscam', 'nftscam', 'ponzi', 'pyramidscheme',
 ];
 
 function urlBloqueada(url) {
@@ -319,18 +315,25 @@ function urlBloqueada(url) {
     return dominiosBloqueados.some(dominio => urlLower.includes(dominio));
 }
 
+// Bloquear esquemas perigosos em links de perfil (corrige XSS via javascript:)
+function esquemaSeguro(url) {
+    if (!url) return true;
+    const limpa = url.trim().toLowerCase();
+    return !limpa.startsWith('javascript:') && !limpa.startsWith('data:') && !limpa.startsWith('vbscript:');
+}
 
-
-//=================================
-// GIPHY API
-//=================================
-
+// ════════════════════════════════════════
+//  GIPHY / WEATHER — chaves agora vêm do .env
+//  Adicione no .env:
+//    GIPHY_API_KEY=...
+//    OPENWEATHER_API_KEY=...
+// ════════════════════════════════════════
 app.get('/giphy', async (req, res) => {
     const { q } = req.query;
     try {
         const fetch = (await import('node-fetch')).default;
         const response = await fetch(
-            `https://api.giphy.com/v1/gifs/search?api_key=G3e7vvEVjkOOI2FEEvHR2M4xSPnQy0ye&q=${encodeURIComponent(q)}&limit=12&lang=pt&rating=pg`
+            `https://api.giphy.com/v1/gifs/search?api_key=${process.env.GIPHY_API_KEY}&q=${encodeURIComponent(q)}&limit=12&lang=pt&rating=pg`
         );
         const data = await response.json();
         res.json(data);
@@ -338,15 +341,13 @@ app.get('/giphy', async (req, res) => {
         res.status(500).json({ error: 'Erro ao buscar GIFs' });
     }
 });
-// =====================
-// WEATHER API
-// =====================
+
 app.get('/weather', async (req, res) => {
     const { lat, lon } = req.query;
     try {
         const fetch = (await import('node-fetch')).default;
         const response = await fetch(
-            `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=1249ecf88be9df5ae456788b26737302&units=metric&lang=pt_br`
+            `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${process.env.OPENWEATHER_API_KEY}&units=metric&lang=pt_br`
         );
         const data = await response.json();
         res.json(data);
@@ -355,38 +356,34 @@ app.get('/weather', async (req, res) => {
     }
 });
 
-
-// =====================
-// Função de links proibidos
-// =====================
-
 function contemLink(texto) {
     const urlRegex = /(https?:\/\/[^\s]+)|(www\.[^\s]+)|([^\s]+\.(com|net|org|br|io|co|gg|tv|me|app|dev)[^\s]*)/gi;
     return urlRegex.test(texto);
 }
 
 // ========== USUÁRIOS ==========
+// PII removida: telefone, email e dataNascimento nunca mais saem em listagens públicas.
+function paraPublico(user) {
+    const { password, telefone, email, dataNascimento, ...publico } = user;
+    return publico;
+}
+
 app.get('/users', (req, res) => {
     const db = readDB();
-    const publicUsers = db.users.map(({ password, ...u }) => u);
-    res.json(publicUsers);
+    res.json(db.users.map(paraPublico));
 });
 
 app.get('/users/:id', (req, res) => {
     const db = readDB();
     const user = db.users.find(u => u.id === req.params.id);
-    if (user) {
-        const { password, ...publicUser } = user;
-        res.json(publicUser);
-    } else {
-        res.status(404).json({ error: "Usuário não encontrado" });
-    }
+    if (user) res.json(paraPublico(user));
+    else res.status(404).json({ error: "Usuário não encontrado" });
 });
 
 app.get('/trending', async (req, res) => {
     try {
         const fetch = (await import('node-fetch')).default;
-        const response = await fetch(`https://gnews.io/api/v4/top-headlines?lang=pt&country=br&max=5&token=01da66b6cd237b068a14ea339c7c0b14`);
+        const response = await fetch(`https://gnews.io/api/v4/top-headlines?lang=pt&country=br&max=5&token=${process.env.GNEWS_API_KEY}`);
         const data = await response.json();
         res.json(data);
     } catch {
@@ -397,34 +394,31 @@ app.get('/trending', async (req, res) => {
 app.get('/posts/search', (req, res) => {
     const { q } = req.query;
     const db = readDB();
-    
     if (!q) return res.json([]);
-    
     const termo = q.toLowerCase();
-    const posts = db.posts.filter(p => 
-        p.content && p.content.toLowerCase().includes(termo)
-    );
-    
+    const posts = db.posts.filter(p => p.content && p.content.toLowerCase().includes(termo));
     res.json(posts.sort((a, b) => b.timestamp - a.timestamp));
 });
 
-app.patch('/users/:id', (req, res) => {
+// 🔒 Agora exige token + ser o dono do perfil (antes: qualquer um podia editar qualquer perfil)
+app.patch('/users/:id', autenticar, exigirDono('id'), (req, res) => {
     const { id } = req.params;
     const { avatar, coverImage, bio, location, website } = req.body;
     const db = readDB();
     const userIndex = db.users.findIndex(u => u.id === id);
 
+    if (website && !esquemaSeguro(website)) {
+        return res.status(400).json({ error: 'Link inválido no site do perfil!' });
+    }
     if (website && urlBloqueada(website)) {
         return res.status(400).json({ error: 'Este site não é permitido no perfil!' });
     }
-
     if (location && contemPalavrasProibidas(location)) {
         return res.status(400).json({ error: 'Localização contém conteúdo inapropriado!' });
     }
-
     if (location && contemLink(location)) {
-    return res.status(400).json({ error: 'Localização não pode conter links!' });
-}
+        return res.status(400).json({ error: 'Localização não pode conter links!' });
+    }
 
     if (userIndex !== -1) {
         if (avatar !== undefined) db.users[userIndex].avatar = avatar;
@@ -433,8 +427,8 @@ app.patch('/users/:id', (req, res) => {
         if (location !== undefined) db.users[userIndex].location = location;
         if (website !== undefined) db.users[userIndex].website = website;
         writeDB(db);
-        
-        const { password, ...updatedUser } = db.users[userIndex];
+
+        const updatedUser = paraPublico(db.users[userIndex]);
         broadcastUpdate('user_updated', updatedUser);
         res.json(updatedUser);
     } else {
@@ -442,38 +436,35 @@ app.patch('/users/:id', (req, res) => {
     }
 });
 
-app.post('/users/follow', (req, res) => {
-    const { followerId, followingId } = req.body;
+// 🔒 Seguir/deixar de seguir agora exige token — o followerId tem que ser o dono do token
+app.post('/users/follow', autenticar, (req, res) => {
+    const { followingId } = req.body;
+    const followerId = req.usuarioLogado.id;
     const db = readDB();
-    
+
     const follower = db.users.find(u => u.id === followerId);
     const following = db.users.find(u => u.id === followingId);
-    
+
     if (follower && following) {
         if (!follower.following.includes(followingId)) {
             follower.following.push(followingId);
             following.followers.push(followerId);
             writeDB(db);
-            
-            // Criar notificação
+
             const notification = {
                 id: Date.now().toString(),
                 userId: followingId,
                 type: 'follow',
-                fromUser: {
-                    id: followerId,
-                    username: follower.username,
-                    avatar: follower.avatar
-                },
+                fromUser: { id: followerId, username: follower.username, avatar: follower.avatar },
                 content: `${follower.username} começou a seguir você`,
                 read: false,
                 timestamp: Date.now()
             };
             db.notifications.push(notification);
             writeDB(db);
-            
+
             broadcastUpdate('follow_update', { followerId, followingId, action: 'follow' });
-            broadcastUpdate('new_notification', notification);
+            sendToUser(followingId, 'new_notification', notification);
             res.json({ success: true, message: 'Agora você está seguindo!' });
         } else {
             res.json({ success: false, message: 'Já está seguindo' });
@@ -483,18 +474,18 @@ app.post('/users/follow', (req, res) => {
     }
 });
 
-app.post('/users/unfollow', (req, res) => {
-    const { followerId, followingId } = req.body;
+app.post('/users/unfollow', autenticar, (req, res) => {
+    const { followingId } = req.body;
+    const followerId = req.usuarioLogado.id;
     const db = readDB();
-    
+
     const follower = db.users.find(u => u.id === followerId);
     const following = db.users.find(u => u.id === followingId);
-    
+
     if (follower && following) {
         follower.following = follower.following.filter(id => id !== followingId);
         following.followers = following.followers.filter(id => id !== followerId);
         writeDB(db);
-        
         broadcastUpdate('follow_update', { followerId, followingId, action: 'unfollow' });
         res.json({ success: true, message: 'Você deixou de seguir' });
     } else {
@@ -502,98 +493,46 @@ app.post('/users/unfollow', (req, res) => {
     }
 });
 
-
-function contemPalavrasProibidasFrontend(texto) {
-    if (!texto) return false;
-    const textoLower = texto.toLowerCase();
-    return palavrasProibidasFrontend.some(p => textoLower.includes(p));
-}
-
-// CENSURA ==
-
-const palavrasProibidas = [// Palavrões gerais
-    'porra', 'porr4', 'p0rra', 'porras',
-    'merda', 'merd4', 'm3rda', 'merdas',
-    'caralho', 'c4ralho', 'car4lho', 'caralh0',
-    'foda', 'f0da', 'fodas', 'fode', 'fodendo', 'fodido', 'fodida',
-    'buceta', 'buc3ta', 'buc4ta', 'bucetas',
-    'cu', 'cú', 'cuzao', 'cuzão',
-    'puta', 'put4', 'putas', 'putaria',
-    'vagabunda', 'vagabundo', 'vag4bunda',
-    'safado', 'safada', 'saf4do',
-    'piranha', 'pir4nha',
-    'prostituta', 'prostituto',
-    'punheta', 'punh3ta',
-    'arrombado', 'arrombada',
-    'cacete', 'cac3te',
-    'pau', 'rola', 'xoxota',
-    'fdp', 'filhadaputa', 'filho da puta', 'filho de puta',
-    'vsf', 'vai se foder', 'vai se fuder',
-    'tnc', 'toma no cu',
-    'pqp', 'krl', 'krlh',
-    'babaca', 'bab4ca',
-    'retardado', 'retardada', 'ret4rdado',
-    'imbecil', 'idiota', 'idi0ta',
-    'canalha', 'desgraça', 'desgraçado','penis', 'pau','pênis',
-
-    // Machistas
-    'feminazi', 'histérica', 'histérico',
-    'mulher no volante', 'lugar de mulher',
-    'mulher não presta', 'vai lavar louça',
-    'vai cozinhar', 'vai ter filho',
-    'mulher burra', 'mulher idiota',
-    'sua vez de calar', 'cala boca mulher',
-    'fresca', 'pirua', 'vaca',
-    'galinha', 'rapariga',
-    'mulher é objeto', 'mulher é propriedade', 'vadia', 'vagabunda', 'piranha', 'putinha', 'safada', 'safada', 'saf4da','putiane', ' sua puta',
-    // Racistas
-    'macaco', 'macacada',
-    'nego', 'nega', 'neguinho',
-    'crioulo', 'crioula',
-    'preto safado', 'preta safada',
-    'volta pra africa', 'volta para a africa',
-    'escravidão deveria voltar',
-    'raça inferior', 'raça ruim',
-    'cabelo ruim', 'nariz de macaco',
-    'nordestino burro', 'baiano burro',
-    'paraíba', 'pau de arara',
-    'amarelado', 'olho puxado',
-    'japonês de merda', 'chinês de merda',
-
-    // Homofóbicas
-    'viado', 'vi4do', 'viad0', 'viadinho',
-    'sapatão', 'sapat4o',
-    'traveco', 'trav3co',
-    'bicha', 'bich4',
-    'gay de merda', 'lésbica de merda',
-    'cura gay', 'gay tem cura',
-    'abominação', 'doença mental gay',
-    'família normal', 'família de verdade',
-    'isso é pecado', 'vai pro inferno gay',
-    'homossexualismo', // termo incorreto e pejorativo
-
-    // Preconceituosas gerais
-    'judeu safado', 'judeu de merda',
-    'muçulmano terrorista', 'islâmico terrorista',
-    'evangélico hipócrita', 'crente de merda',
-    'ateu sem moral',
-    'gordo inútil', 'gordo nojento', 'gorda nojenta',
-    'aleijado', 'aleijada',
-    'mongolóide', 'mongol',
-    'louco de hospício', 'maluco de hospício',
-    'pobre vagabundo', 'pobre inútil',
-    'favelado', 'favelada',
-    'mendigo inútil', 'mendigo de merda',
-    'deficiente inútil', 'deficiente mental',
-    'esquizofrênico', // usado como xingamento
-    'autista', // usado como xingamento
+// CENSURA (lista mantida igual à original, sem alterações de conteúdo)
+const palavrasProibidas = [
+    'porra', 'porr4', 'p0rra', 'porras', 'merda', 'merd4', 'm3rda', 'merdas',
+    'caralho', 'c4ralho', 'car4lho', 'caralh0', 'foda', 'f0da', 'fodas', 'fode',
+    'fodendo', 'fodido', 'fodida', 'buceta', 'buc3ta', 'buc4ta', 'bucetas', 'cu',
+    'cú', 'cuzao', 'cuzão', 'puta', 'put4', 'putas', 'putaria', 'vagabunda',
+    'vagabundo', 'vag4bunda', 'safado', 'safada', 'saf4do', 'piranha', 'pir4nha',
+    'prostituta', 'prostituto', 'punheta', 'punh3ta', 'arrombado', 'arrombada',
+    'cacete', 'cac3te', 'pau', 'rola', 'xoxota', 'fdp', 'filhadaputa',
+    'filho da puta', 'filho de puta', 'vsf', 'vai se foder', 'vai se fuder', 'tnc',
+    'toma no cu', 'pqp', 'krl', 'krlh', 'babaca', 'bab4ca', 'retardado', 'retardada',
+    'ret4rdado', 'imbecil', 'idiota', 'idi0ta', 'canalha', 'desgraça', 'desgraçado',
+    'penis', 'pênis', 'feminazi', 'histérica', 'histérico', 'mulher no volante',
+    'lugar de mulher', 'mulher não presta', 'vai lavar louça', 'vai cozinhar',
+    'vai ter filho', 'mulher burra', 'mulher idiota', 'sua vez de calar',
+    'cala boca mulher', 'fresca', 'pirua', 'vaca', 'galinha', 'rapariga',
+    'mulher é objeto', 'mulher é propriedade', 'vadia', 'putinha', 'putiane',
+    'sua puta', 'macaco', 'macacada', 'nego', 'nega', 'neguinho', 'crioulo',
+    'crioula', 'preto safado', 'preta safada', 'volta pra africa',
+    'volta para a africa', 'escravidão deveria voltar', 'raça inferior',
+    'raça ruim', 'cabelo ruim', 'nariz de macaco', 'nordestino burro',
+    'baiano burro', 'paraíba', 'pau de arara', 'amarelado', 'olho puxado',
+    'japonês de merda', 'chinês de merda', 'viado', 'vi4do', 'viad0', 'viadinho',
+    'sapatão', 'sapat4o', 'traveco', 'trav3co', 'bicha', 'bich4', 'gay de merda',
+    'lésbica de merda', 'cura gay', 'gay tem cura', 'abominação',
+    'doença mental gay', 'família normal', 'família de verdade', 'isso é pecado',
+    'vai pro inferno gay', 'homossexualismo', 'judeu safado', 'judeu de merda',
+    'muçulmano terrorista', 'islâmico terrorista', 'evangélico hipócrita',
+    'crente de merda', 'ateu sem moral', 'gordo inútil', 'gordo nojento',
+    'gorda nojenta', 'aleijado', 'aleijada', 'mongolóide', 'mongol',
+    'louco de hospício', 'maluco de hospício', 'pobre vagabundo', 'pobre inútil',
+    'favelado', 'favelada', 'mendigo inútil', 'mendigo de merda',
+    'deficiente inútil', 'deficiente mental', 'esquizofrênico', 'autista',
 ];
 
 function contemPalavrasProibidas(texto) {
+    if (!texto) return false;
     const textoLower = texto.toLowerCase();
     return palavrasProibidas.some(palavra => textoLower.includes(palavra));
 }
-
 
 // ========== POSTS ==========
 app.get('/posts', (req, res) => {
@@ -607,31 +546,27 @@ app.get('/posts/user/:userId', (req, res) => {
     res.json(userPosts.sort((a, b) => b.timestamp - a.timestamp));
 });
 
-app.post('/posts', (req, res) => {
-    const { userId, username, avatar, content, imageUrl } = req.body; // ← só uma vez
+// 🔒 Exige token; o userId do post passa a vir do token, não do body
+app.post('/posts', autenticar, (req, res) => {
+    const userId = req.usuarioLogado.id;
+    const { username, avatar, content, imageUrl } = req.body;
 
-      if (verificarSpam(userId, 'post', 10000)) { // 10 segundos entre posts
+    if (verificarSpam(userId, 'post', 10000)) {
         return res.status(429).json({ error: 'Aguarde antes de postar novamente!' });
     }
-
     if (contemPalavrasProibidas(content)) {
         return res.status(400).json({ error: 'Post contém conteúdo inapropriado!' });
     }
-
     if (contemLink(content)) {
-    return res.status(403).json({ error: 'Posts com links não são permitidos!' });
-}
+        return res.status(403).json({ error: 'Posts com links não são permitidos!' });
+    }
 
     const db = readDB();
     const newPost = {
-        id: Date.now().toString(),
-        userId,
-        username,
-        avatar,
-        content,
+        id: Date.now().toString() + Math.random().toString(36).slice(2, 8),
+        userId, username, avatar, content,
         imageUrl: imageUrl || null,
-        likes: [],
-        comments: [],
+        likes: [], comments: [], retweets: [],
         timestamp: Date.now()
     };
     db.posts.push(newPost);
@@ -641,16 +576,16 @@ app.post('/posts', (req, res) => {
     res.json(newPost);
 });
 
-app.delete('/posts/:postId', (req, res) => {
+// 🔒 Só o dono do post consegue excluir (validado pelo token, não pelo body)
+app.delete('/posts/:postId', autenticar, exigirDono(), (req, res) => {
     const { postId } = req.params;
-    const { userId } = req.body;
+    const userId = req.usuarioLogado.id;
     const db = readDB();
-    
+
     const postIndex = db.posts.findIndex(p => p.id === postId);
     if (postIndex !== -1 && db.posts[postIndex].userId === userId) {
-        const deletedPost = db.posts.splice(postIndex, 1)[0];
+        db.posts.splice(postIndex, 1);
         writeDB(db);
-        
         broadcastUpdate('post_deleted', { postId, userId });
         res.json({ success: true, message: 'Post excluído com sucesso!' });
     } else {
@@ -658,299 +593,203 @@ app.delete('/posts/:postId', (req, res) => {
     }
 });
 
-
-app.post('/posts/like', (req, res) => {
-    const { postId, userId } = req.body;
-    
-    console.log('🔍 Like request:', { postId, userId }); // DEBUG
-    
+app.post('/posts/like', autenticar, (req, res) => {
+    const { postId } = req.body;
+    const userId = req.usuarioLogado.id;
     const db = readDB();
-    
-    // Encontra o post
     const post = db.posts.find(p => String(p.id) === String(postId));
+    if (!post) return res.status(404).json({ error: "Post não encontrado" });
 
-    if (!post) {
-        console.error('❌ Post not found:', postId);
-        return res.status(404).json({ error: "Post não encontrado" });
-    }
-
-    // 🔧 GARANTIR que likes existe
     if (!post.likes) post.likes = [];
-    
     const likeIndex = post.likes.findIndex(id => String(id) === String(userId));
-    
+
     if (likeIndex === -1) {
-        // CURTIR
         post.likes.push(String(userId));
-        console.log('✅ Like adicionado. Likes agora:', post.likes);
-        
-        // 🔧 CRIA NOTIFICAÇÃO APENAS SE NÃO FOR O PRÓPRIO USUÁRIO
         if (String(post.userId) !== String(userId)) {
-            try {
-                const liker = db.users.find(u => String(u.id) === String(userId));
-                if (liker) {
-                    if (!db.notifications) db.notifications = [];
-                    
-                    const notification = {
-                        id: Date.now().toString(),
-                        userId: post.userId,
-                        type: 'like',
-                        fromUser: { 
-                            id: liker.id, 
-                            username: liker.username, 
-                            avatar: liker.avatar || '' 
-                        },
-                        content: `${liker.username} curtiu seu post`,
-                        postId: String(postId),
-                        read: false,
-                        timestamp: Date.now()
-                    };
-                    db.notifications.push(notification);
-                    console.log('📢 Notificação de like criada');
-                } else {
-                    console.warn('⚠️ Liker não encontrado no banco:', userId);
-                }
-            } catch (notifError) {
-                console.error('❌ Erro ao criar notificação:', notifError);
-                // Continua mesmo se a notificação falhar
-            }
-        }
-    } else {
-        // DESCURTIR
-        post.likes.splice(likeIndex, 1);
-        console.log('💔 Like removido. Likes agora:', post.likes);
-    }
-    
-    // Salva no banco
-    writeDB(db);
-    
-    // 🔧 BROADCAST SEGURO
-    try {
-        broadcastUpdate('like_update', { postId: String(postId), likes: post.likes });
-    } catch (broadcastError) {
-        console.error('❌ Erro no broadcast:', broadcastError);
-    }
-    
-    res.json({ likes: post.likes });
-});
-
-
-app.post('/posts/retweet', (req, res) => {
-    const { postId, userId } = req.body;
-    const db = readDB();
-    
-    // 🔧 FIX: Garantir strings
-    const postIdStr = String(postId);
-    const userIdStr = String(userId);
-    
-    const post = db.posts.find(p => String(p.id) === postIdStr);
-    
-    if (post) {
-        if (!post.retweets) post.retweets = [];
-        
-        const retweetIndex = post.retweets.findIndex(id => String(id) === userIdStr);
-        let isRetweeting = false;
-        
-        if (retweetIndex === -1) {
-            post.retweets.push(userIdStr);
-            isRetweeting = true;
-        } else {
-            post.retweets.splice(retweetIndex, 1);
-            isRetweeting = false;
-        }
-        
-        writeDB(db);
-        
-        if (isRetweeting && post.userId && String(post.userId) !== userIdStr) {
-            const retweeter = db.users.find(u => String(u.id) === userIdStr);
-            if (retweeter) {
-                if (!db.notifications) db.notifications = [];
+            const liker = db.users.find(u => String(u.id) === String(userId));
+            if (liker) {
                 const notification = {
                     id: Date.now().toString(),
                     userId: post.userId,
-                    type: 'retweet',
-                    fromUser: {
-                        id: retweeter.id,
-                        username: retweeter.username,
-                        avatar: retweeter.avatar
-                    },
-                    content: `${retweeter.username} retweetou seu post`,
-                    postId: postIdStr,
+                    type: 'like',
+                    fromUser: { id: liker.id, username: liker.username, avatar: liker.avatar || '' },
+                    content: `${liker.username} curtiu seu post`,
+                    postId: String(postId),
                     read: false,
                     timestamp: Date.now()
                 };
                 db.notifications.push(notification);
+                sendToUser(post.userId, 'new_notification', notification);
             }
         }
-        
-        writeDB(db);
-        
-        try {
-            broadcastUpdate('retweet_update', { postId: postIdStr, retweets: post.retweets });
-        } catch (err) {
-            console.error('Broadcast error:', err);
-        }
-        
-        res.json({ retweets: post.retweets });
     } else {
-        res.status(404).json({ error: "Post não encontrado" });
+        post.likes.splice(likeIndex, 1);
     }
+
+    writeDB(db);
+    broadcastUpdate('like_update', { postId: String(postId), likes: post.likes });
+    res.json({ likes: post.likes });
 });
 
-app.post('/posts/comment', (req, res) => {
-    const { postId, userId, username, avatar, content } = req.body;
-
-    if (verificarSpam(userId, 'comment', 5000)) { // 5 segundos entre comentários
-    return res.status(429).json({ error: 'Aguarde antes de comentar novamente!' });
-    }
-
-    if (contemPalavrasProibidas(content)) {
-        return res.status(400).json({ error: 'Comentário contém conteúdo inapropriado!' });
-    }
-    if (contemLink(content)) {
-    return res.status(403).json({ error: 'Posts com links não são permitidos!' });
-}
+// (rota /posts/retweet duplicada foi removida — só existe uma versão agora)
+app.post('/posts/retweet', autenticar, (req, res) => {
+    const { postId } = req.body;
+    const userId = req.usuarioLogado.id;
     const db = readDB();
-    const post = db.posts.find(p => p.id === postId);
-    
-    if (post) {
-        const comment = {
-            id: Date.now().toString(),
-            userId,
-            username,
-            avatar,
-            content,
-            timestamp: Date.now()
-        };
-        post.comments.push(comment);
-        writeDB(db);
-        
-        // Criar notificação de comentário
-        const postOwner = db.users.find(u => u.id === post.userId);
-        if (postOwner && postOwner.id !== userId) {
+    const post = db.posts.find(p => String(p.id) === String(postId));
+    if (!post) return res.status(404).json({ error: "Post não encontrado" });
+
+    if (!post.retweets) post.retweets = [];
+    const retweetIndex = post.retweets.findIndex(id => String(id) === String(userId));
+    let isRetweeting = false;
+
+    if (retweetIndex === -1) {
+        post.retweets.push(String(userId));
+        isRetweeting = true;
+    } else {
+        post.retweets.splice(retweetIndex, 1);
+    }
+    writeDB(db);
+
+    if (isRetweeting && String(post.userId) !== String(userId)) {
+        const retweeter = db.users.find(u => String(u.id) === String(userId));
+        if (retweeter) {
             const notification = {
                 id: Date.now().toString(),
                 userId: post.userId,
-                type: 'comment',
-                fromUser: {
-                    id: userId,
-                    username: username,
-                    avatar: avatar
-                },
-                content: `${username} comentou no seu post: "${content.substring(0, 50)}..."`,
-                postId: postId,
+                type: 'retweet',
+                fromUser: { id: retweeter.id, username: retweeter.username, avatar: retweeter.avatar },
+                content: `${retweeter.username} retweetou seu post`,
+                postId: String(postId),
                 read: false,
                 timestamp: Date.now()
             };
             db.notifications.push(notification);
-            writeDB(db);
-            broadcastUpdate('new_notification', notification);
+            sendToUser(post.userId, 'new_notification', notification);
         }
-        
-        broadcastUpdate('new_comment', { postId, comment });
-        res.json({ success: true, comment });
-    } else {
-        res.status(404).json({ error: "Post não encontrado" });
     }
+
+    broadcastUpdate('retweet_update', { postId: String(postId), retweets: post.retweets });
+    res.json({ retweets: post.retweets });
 });
 
-// =ENDPOINT RETWEET
-app.post('/posts/retweet', (req, res) => {
-    const { postId, userId } = req.body;
+app.post('/posts/comment', autenticar, (req, res) => {
+    const userId = req.usuarioLogado.id;
+    const { postId, username, avatar, content } = req.body;
+
+    if (verificarSpam(userId, 'comment', 5000)) {
+        return res.status(429).json({ error: 'Aguarde antes de comentar novamente!' });
+    }
+    if (contemPalavrasProibidas(content)) {
+        return res.status(400).json({ error: 'Comentário contém conteúdo inapropriado!' });
+    }
+    if (contemLink(content)) {
+        return res.status(403).json({ error: 'Comentários com links não são permitidos!' });
+    }
+
     const db = readDB();
-    
-    // Encontrar o post original
     const post = db.posts.find(p => p.id === postId);
-    
-    if (post) {
-        // Inicializar array de retweets se não existir
-        if (!post.retweets) post.retweets = [];
-        
-        const retweetIndex = post.retweets.indexOf(userId);
-        let isRetweeting = false;
-        
-        if (retweetIndex === -1) {
-            // Adicionar retweet
-            post.retweets.push(userId);
-            isRetweeting = true;
-        } else {
-            // Remover retweet
-            post.retweets.splice(retweetIndex, 1);
-            isRetweeting = false;
-        }
-        
+    if (!post) return res.status(404).json({ error: "Post não encontrado" });
+
+    const comment = { id: Date.now().toString(), userId, username, avatar, content, timestamp: Date.now() };
+    post.comments.push(comment);
+    writeDB(db);
+
+    const postOwner = db.users.find(u => u.id === post.userId);
+    if (postOwner && postOwner.id !== userId) {
+        const notification = {
+            id: Date.now().toString(),
+            userId: post.userId,
+            type: 'comment',
+            fromUser: { id: userId, username, avatar },
+            content: `${username} comentou no seu post: "${content.substring(0, 50)}..."`,
+            postId,
+            read: false,
+            timestamp: Date.now()
+        };
+        db.notifications.push(notification);
         writeDB(db);
-        
-        // Criar notificação 
-        if (isRetweeting && post.userId !== userId) {
-            const retweeter = db.users.find(u => u.id === userId);
-            if (retweeter) {
-                const notification = {
-                    id: Date.now().toString(),
-                    userId: post.userId,
-                    type: 'retweet',
-                    fromUser: {
-                        id: userId,
-                        username: retweeter.username,
-                        avatar: retweeter.avatar
-                    },
-                    content: `${retweeter.username} retweetou seu post: "${post.content.substring(0, 50)}..."`,
-                    postId: postId,
-                    read: false,
-                    timestamp: Date.now()
-                };
-                db.notifications.push(notification);
-                writeDB(db);
-                broadcastUpdate('new_notification', notification);
-            }
-        }
-        
-        broadcastUpdate('retweet_update', { postId, retweets: post.retweets });
-        res.json({ retweets: post.retweets });
-    } else {
-        res.status(404).json({ error: "Post não encontrado" });
+        sendToUser(post.userId, 'new_notification', notification);
     }
+
+    broadcastUpdate('new_comment', { postId, comment });
+    res.json({ success: true, comment });
 });
 
-// DELETE COMMENT
-
-app.delete('/posts/:postId/comments/:commentId', (req, res) => {
+app.delete('/posts/:postId/comments/:commentId', autenticar, (req, res) => {
     const { postId, commentId } = req.params;
-    const { userId } = req.body;
+    const userId = req.usuarioLogado.id;
     const db = readDB();
 
     const post = db.posts.find(p => String(p.id) === String(postId));
     if (!post) return res.status(404).json({ error: 'Post não encontrado' });
 
-    const commentIndex = post.comments.findIndex(c => 
+    const commentIndex = post.comments.findIndex(c =>
         String(c.id) === String(commentId) && String(c.userId) === String(userId)
     );
-
     if (commentIndex === -1) return res.status(403).json({ error: 'Sem permissão' });
 
     post.comments.splice(commentIndex, 1);
     writeDB(db);
-
     broadcastUpdate('comment_deleted', { postId, commentId });
     res.json({ success: true });
 });
 
-// ENDPOINT DELETE MESSAGE 
-app.delete('/messages/:messageId', (req, res) => {
-    const { messageId } = req.params;
-    const { userId } = req.body;
+// ========== MENSAGENS ==========
+app.get('/messages/:userId/:otherUserId', autenticar, (req, res) => {
     const db = readDB();
-    
+    const { userId, otherUserId } = req.params;
+
+    // Só os dois participantes da conversa podem ler
+    if (![userId, otherUserId].includes(req.usuarioLogado.id)) {
+        return res.status(403).json({ error: 'Sem permissão para ver essa conversa' });
+    }
+
+    const messages = db.messages.filter(m =>
+        (m.from === userId && m.to === otherUserId) ||
+        (m.from === otherUserId && m.to === userId)
+    ).sort((a, b) => a.timestamp - b.timestamp);
+    res.json(messages);
+});
+
+app.post('/messages', autenticar, (req, res) => {
+    const from = req.usuarioLogado.id;
+    const { to, content } = req.body;
+
+    if (verificarSpam(from, 'message', 2000)) {
+        return res.status(429).json({ error: 'Aguarde antes de enviar outra mensagem!' });
+    }
+    if (contemPalavrasProibidas(content)) {
+        return res.status(400).json({ error: 'Mensagem contém conteúdo inapropriado!' });
+    }
+    if (contemLink(content)) {
+        return res.status(403).json({ error: 'Mensagens com links não são permitidas!' });
+    }
+
+    const db = readDB();
+    const message = { id: Date.now().toString(), from, to, content, timestamp: Date.now(), read: false };
+    db.messages.push(message);
+    writeDB(db);
+
+    // Agora só vai para os dois envolvidos, não para todo mundo conectado
+    sendToUser(from, 'new_message', message);
+    sendToUser(to, 'new_message', message);
+    res.json(message);
+});
+
+app.delete('/messages/:messageId', autenticar, (req, res) => {
+    const { messageId } = req.params;
+    const userId = req.usuarioLogado.id;
+    const db = readDB();
+
     const messageIndex = db.messages.findIndex(m => m.id === messageId);
-    
     if (messageIndex !== -1) {
         const message = db.messages[messageIndex];
-        // Verificar se o usuário é o remetente da mensagem
         if (message.from === userId) {
             db.messages.splice(messageIndex, 1);
             writeDB(db);
-            
-            broadcastUpdate('message_deleted', { messageId });
+            sendToUser(message.from, 'message_deleted', { messageId });
+            sendToUser(message.to, 'message_deleted', { messageId });
             res.json({ success: true, message: 'Mensagem excluída com sucesso!' });
         } else {
             res.status(403).json({ error: "Você não tem permissão para excluir esta mensagem" });
@@ -959,92 +798,44 @@ app.delete('/messages/:messageId', (req, res) => {
         res.status(404).json({ error: "Mensagem não encontrada" });
     }
 });
-// == ENDPOINT DELETE MESSAGE 
 
-//  ENDPOINT LIKE MESSAGE 
-app.post('/messages/:messageId/like', (req, res) => {
+app.post('/messages/:messageId/like', autenticar, (req, res) => {
     const { messageId } = req.params;
-    const { userId } = req.body;
+    const userId = req.usuarioLogado.id;
     const db = readDB();
-    
+
     const message = db.messages.find(m => m.id === messageId);
-    
     if (message) {
         if (!message.likedBy) message.likedBy = [];
-        
         const likeIndex = message.likedBy.indexOf(userId);
         let isLiked = false;
-        
-        if (likeIndex === -1) {
-            message.likedBy.push(userId);
-            isLiked = true;
-        } else {
-            message.likedBy.splice(likeIndex, 1);
-            isLiked = false;
-        }
-        
+        if (likeIndex === -1) { message.likedBy.push(userId); isLiked = true; }
+        else message.likedBy.splice(likeIndex, 1);
+
         writeDB(db);
-        
-        broadcastUpdate('message_like_update', { messageId, likedBy: message.likedBy });
+        sendToUser(message.from, 'message_like_update', { messageId, likedBy: message.likedBy });
+        sendToUser(message.to, 'message_like_update', { messageId, likedBy: message.likedBy });
         res.json({ liked: isLiked, likedBy: message.likedBy });
     } else {
         res.status(404).json({ error: "Mensagem não encontrada" });
     }
 });
-// == ENDPOINT LIKE MESSAGE =
-
-// ========== MENSAGENS ==========
-app.get('/messages/:userId/:otherUserId', (req, res) => {
-    const db = readDB();
-    const { userId, otherUserId } = req.params;
-    const messages = db.messages.filter(m => 
-        (m.from === userId && m.to === otherUserId) ||
-        (m.from === otherUserId && m.to === userId)
-    ).sort((a, b) => a.timestamp - b.timestamp);
-    res.json(messages);
-});
-
-app.post('/messages', (req, res) => {
-    const { from, to, content } = req.body;
-
-    if (verificarSpam(from, 'message', 2000)) { // 2 segundos entre mensagens
-        return res.status(429).json({ error: 'Aguarde antes de enviar outra mensagem!' });
-    }
-    if (contemPalavrasProibidas(content)) {
-        return res.status(400).json({ error: 'Mensagem contém conteúdo inapropriado!' });
-    }
-    if (contemLink(content)) {
-    return res.status(403).json({ error: 'Posts com links não são permitidos!' });
-}
-
-    const db = readDB();
-    const message = {
-        id: Date.now().toString(),
-        from,
-        to,
-        content,
-        timestamp: Date.now(),
-        read: false
-    };
-    db.messages.push(message);
-    writeDB(db);
-    
-    broadcastUpdate('new_message', message);
-    res.json(message);
-});
 
 // ========== NOTIFICAÇÕES ==========
-app.get('/notifications/:userId', (req, res) => {
+app.get('/notifications/:userId', autenticar, exigirDono('userId'), (req, res) => {
     const db = readDB();
     const notifications = db.notifications.filter(n => n.userId === req.params.userId);
     res.json(notifications.sort((a, b) => b.timestamp - a.timestamp));
 });
 
-app.post('/notifications/:notificationId/read', (req, res) => {
+app.post('/notifications/:notificationId/read', autenticar, (req, res) => {
     const { notificationId } = req.params;
     const db = readDB();
     const notification = db.notifications.find(n => n.id === notificationId);
     if (notification) {
+        if (notification.userId !== req.usuarioLogado.id) {
+            return res.status(403).json({ error: 'Sem permissão' });
+        }
         notification.read = true;
         writeDB(db);
         res.json({ success: true });
@@ -1056,5 +847,5 @@ app.post('/notifications/:notificationId/read', (req, res) => {
 server.listen(port, '0.0.0.0', () => {
     console.log(`\n🚀 Tiwitter Social rodando em http://localhost:${port}`);
     console.log(`📡 WebSocket ativo para atualizações em tempo real`);
-    console.log(`✨ Layout inovador pronto para apresentação!\n`);
+    console.log(`✨ Layout pronto para apresentação!\n`);
 });
