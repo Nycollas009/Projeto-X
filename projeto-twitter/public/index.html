@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Tiwitter Social | Conecte-se com o mund</title>
+    <title>Tiwitter Social | Conecte-se com o mundo</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -17,86 +17,95 @@
     <div id="toast-container"></div>
 
 
-    
-  <!-- ══ LOGIN SCREEN ══ -->
-<div id="login-container">
+    <!-- ══ LOGIN SCREEN ══ -->
+    <div id="login-container">
 
-<!-- TELA DE BOAS VINDAS -->
-<div id="tela-boasvindas" class="tela-login active">
-    <div class="login-logo-wrapper">
-        <img src="logo.png" alt="Logo Tiwitter" class="login-logo-img">
+    <!-- TELA DE BOAS VINDAS -->
+    <div id="tela-boasvindas" class="tela-login active">
+        <div class="login-logo-wrapper">
+            
+                <img src="logo.png" alt="Logo do Tiwitter" style="width:100%; height:120px;">
+               
+            </div>
+        <h1>Tiwitter</h1>
+        <p>Conecte-se com o mundo de forma inovadora</p>
+        <div class="login-form">
+            <button class="btn-primary" onclick="mostrarTela('tela-cadastro')">
+                <i class="fas fa-user-plus"></i> Criar conta
+            </button>
+            <div class="login-divider"><span>ou</span></div>
+            <button class="btn-secondary-login" onclick="mostrarTela('tela-entrar')">
+                <i class="fas fa-arrow-right"></i> Entrar
+            </button>
+        </div>
     </div>
-    <h1>Tiwitter</h1>
-    <p>Conecte-se com o mundo de forma inovadora</p>
-    <div class="login-form">
-        <button class="btn-primary" onclick="mostrarTela('tela-cadastro')">
-            <i class="fas fa-user-plus"></i> Criar conta
+
+    <!-- TELA DE LOGIN -->
+    <div id="tela-entrar" class="tela-login">
+        <button class="btn-voltar" onclick="mostrarTela('tela-boasvindas')">
+            <i class="fas fa-arrow-left"></i>
         </button>
-        <div class="login-divider"><span>ou</span></div>
-        <button class="btn-secondary-login" onclick="mostrarTela('tela-entrar')">
-            <i class="fas fa-arrow-right"></i> Entrar
-        </button>
-    </div>
+        <div class="login-logo-wrapper">
+            <i class="fas fa-globe x-logo-main"></i>
+        </div>
+        <h1>Entrar</h1>
+        <div class="login-form">
+          <div class="field-tooltip-wrapper">
+    <input type="text" id="login-username" placeholder="Usuário ou email" autocomplete="off">
+    <span class="field-tooltip">Exemplo: joao_silva</span>
 </div>
-
-<!-- TELA DE LOGIN -->
-<div id="tela-entrar" class="tela-login">
-    <button class="btn-voltar" onclick="mostrarTela('tela-boasvindas')">
-        <i class="fas fa-arrow-left"></i>
-    </button>
-    <div class="login-logo-wrapper">
-        <img src="logo.png" alt="Logo do Tiwitter" class="login-logo-img">
-    </div>
-    <h1>Entrar</h1>
-    <div class="login-form">
-        <div class="field-tooltip-wrapper">
-            <input type="text" id="login-username" placeholder="Usuário ou email" autocomplete="off">
-            <span class="field-tooltip">Exemplo: joao_silva</span>
-        </div>
-        <div class="password-input-wrapper">
-            <input type="password" id="login-password" placeholder="Senha">
-            <i class="fas fa-eye toggle-password" id="toggle-login-password"></i>
-            <span class="field-tooltip">Exemplo: Senha@123</span>
-        </div>
-        <form>
-            <div class="cf-turnstile" data-sitekey="0x4AAAAAADsyMXv1b4TTPk63"></div>
-        </form>
-        <button class="btn-primary" id="login-btn">
-            <i class="fas fa-arrow-right"></i> Entrar
-        </button>
-        <p style="text-align:center;font-size:0.82rem;color:var(--text-secondary);margin-top:8px;">
-            Não tem conta? 
-            <span onclick="mostrarTela('tela-cadastro')" style="color:var(--primary);cursor:pointer;font-weight:600;">Cadastre-se</span>
-        </p>
-    </div>
+            <div class="password-input-wrapper">
+               <div class="password-input-wrapper">
+    <input type="password" id="login-password" placeholder="Senha">
+    <i class="fas fa-eye toggle-password" id="toggle-login-password"></i>
+    <span class="field-tooltip">Exemplo: Senha@123</span>
 </div>
-
-<!-- TELA DE CADASTRO -->
-<div id="tela-cadastro" class="tela-login">
-    <button class="btn-voltar" onclick="mostrarTela('tela-boasvindas')">
-        <i class="fas fa-arrow-left"></i>
-    </button>
-    <div class="login-logo-wrapper">
-        <img src="logo.png" alt="Logo do Tiwitter" class="login-logo-img">
+            <!-- formulário Captcha-->
+            <form>
+                <div
+                class="cf-turnstile"
+                data-sitekey="0x4AAAAAADsyMXv1b4TTPk63">
+                </div>
+            </form>
+                
+            </div>
+            <button class="btn-primary" id="login-btn">
+                <i class="fas fa-arrow-right"></i> Entrar
+            </button>
+            <p style="text-align:center;font-size:0.82rem;color:var(--text-secondary);margin-top:8px;">
+                Não tem conta? 
+                <span onclick="mostrarTela('tela-cadastro')" style="color:var(--primary);cursor:pointer;font-weight:600;">Cadastre-se</span>
+            </p>
+        </div>
     </div>
-    <h1>Criar conta</h1>
-    <div class="login-form">
-        <input type="text" id="reg-nome" placeholder="Nome completo" autocomplete="off">
-        <div class="field-tooltip-wrapper">
-            <input type="text" id="reg-username" placeholder="Nome de usuário" autocomplete="off">
-            <span class="field-tooltip">Exemplo: joao_silva123</span>
+
+    <!-- TELA DE CADASTRO -->
+    <div id="tela-cadastro" class="tela-login">
+        <button class="btn-voltar" onclick="mostrarTela('tela-boasvindas')">
+            <i class="fas fa-arrow-left"></i>
+        </button>
+        <div class="login-logo-wrapper">
+                <i class="fas fa-globe x-logo-main"></i>
         </div>
-        <input type="email" id="reg-email" placeholder="Email">
-        <input type="tel" id="reg-telefone" placeholder="Telefone (com DDD)">
-        <input type="date" id="reg-nascimento" placeholder="Data de nascimento">
-        <small style="color:var(--text-muted);font-size:0.75rem;margin-top:-8px;display:block;">
-            Você deve ter 18 anos ou mais
-        </small>
-        <div class="password-input-wrapper">
-            <input type="password" id="reg-password" placeholder="Senha">
-            <i class="fas fa-eye toggle-password" id="toggle-reg-password"></i>
-            <span class="field-tooltip">Exemplo: Senha@123</span>
-        </div>
+        <h1>Criar conta</h1>
+        <div class="login-form">
+            <input type="text" id="reg-nome" placeholder="Nome completo" autocomplete="off">
+           <div class="field-tooltip-wrapper">
+    <input type="text" id="reg-username" placeholder="Nome de usuário" autocomplete="off">
+    <span class="field-tooltip">Exemplo: joao_silva123</span>
+</div>
+          
+            <input type="email" id="reg-email" placeholder="Email">
+            <input type="tel" id="reg-telefone" placeholder="Telefone (com DDD)">
+            <input type="date" id="reg-nascimento" placeholder="Data de nascimento">
+            <small style="color:var(--text-muted);font-size:0.75rem;margin-top:-8px;display:block;">
+                Você deve ter 18 anos ou mais
+            </small>
+           <div class="password-input-wrapper">
+    <input type="password" id="reg-password" placeholder="Senha">
+    <i class="fas fa-eye toggle-password" id="toggle-reg-password"></i>
+    <span class="field-tooltip">Exemplo: Senha@123</span>
+</div>
             <small style="color:var(--text-muted);font-size:0.75rem;margin-top:-8px;display:block;line-height:1.6;">
                 6 a 20 caracteres · uma maiúscula · um número · um caractere especial
             </small>
@@ -127,37 +136,183 @@
 <div id="termo-modal" class="modal">
     <div class="modal-content" style="max-width:600px;background:var(--bg-card);padding:36px;border-radius:var(--radius-xl);border:1px solid var(--border);max-height:80vh;overflow-y:auto;">
         <span class="close-modal" onclick="fecharTermo()">&times;</span>
-        <h2 style="margin-bottom:20px;font-size:1.2rem;font-weight:800;">Termos de Uso — Tiwitter Social</h2>
+        <h2 style="margin-bottom:20px;font-size:1.2rem;font-weight:800;">Termos de Uso — Tiwitter</h2>
         <div style="font-size:0.85rem;color:var(--text-secondary);line-height:1.8;">
-            <p><strong style="color:var(--text);">Última atualização:</strong> 2025</p><br>
-            <p><strong style="color:var(--text);">1. Aceitação dos Termos</strong></p>
-            <p>Ao criar uma conta no Tiwitter Social, você confirma que leu, entendeu e concorda com estes Termos de Uso. Caso não concorde, não utilize a plataforma.</p><br>
-            <p><strong style="color:var(--text);">2. Elegibilidade</strong></p>
-            <p>O uso da plataforma é permitido exclusivamente para pessoas com <strong>18 anos ou mais</strong>. Ao se cadastrar, você declara que possui a idade mínima exigida. O Tiwitter Social não se responsabiliza por cadastros realizados com informações falsas, incluindo data de nascimento incorreta.</p><br>
-            <p><strong style="color:var(--text);">3. Responsabilidade pelo Cadastro</strong></p>
-            <p>Você é inteiramente responsável pelas informações fornecidas no cadastro. O Tiwitter Social <strong>não se responsabiliza</strong> por dados falsos, incorretos ou fraudulentos inseridos pelos usuários. Em caso de uso indevido da plataforma com dados falsos, o usuário poderá ter sua conta suspensa ou excluída sem aviso prévio.</p><br>
-            <p><strong style="color:var(--text);">4. Conduta do Usuário</strong></p>
-            <p>É estritamente proibido:</p>
+            <p><strong style="color:var(--text);">Última atualização:</strong> 09 de agosto de 2026</p><br>
+
+            <p>Bem-vindo ao <strong style="color:var(--text);">Tiwitter</strong>!</p>
+            <p>Estes Termos de Uso estabelecem as regras para utilização da rede social Tiwitter, criada como um projeto independente e de caráter paródico, educacional e/ou experimental.</p>
+            <p>Ao criar uma conta, acessar ou utilizar o Tiwitter, você declara que leu, compreendeu e concorda com estes Termos de Uso. Caso não concorde com alguma das condições apresentadas, não utilize a plataforma.</p><br>
+
+            <p><strong style="color:var(--text);">1. Sobre o Tiwitter</strong></p>
+            <p>O <strong style="color:var(--text);">Tiwitter</strong> é uma plataforma de interação social que permite aos usuários criar perfis, publicar conteúdos, compartilhar informações, interagir com outras pessoas e utilizar recursos disponibilizados pela plataforma.</p>
+            <p>O Tiwitter é uma criação independente e <strong style="color:var(--text);">não possui vínculo, associação, parceria ou autorização do X Corp., Twitter, Inc. ou de seus respectivos proprietários</strong>.</p>
+            <p>O nome, identidade visual, funcionalidades e elementos utilizados no Tiwitter possuem finalidade própria e, quando aplicável, paródica.</p><br>
+
+            <p><strong style="color:var(--text);">2. Aceitação dos Termos</strong></p>
+            <p>Ao utilizar o Tiwitter, você concorda em:</p>
             <ul style="margin-left:20px;margin-top:8px;">
-                <li>Publicar conteúdo ofensivo, racista, homofóbico, machista ou discriminatório</li>
-                <li>Compartilhar conteúdo pornográfico, violento ou ilegal</li>
-                <li>Assediar, ameaçar ou intimidar outros usuários</li>
-                <li>Divulgar links para sites impróprios ou ilegais</li>
-                <li>Criar contas falsas ou se passar por outra pessoa</li>
-                <li>Realizar ataques de spam ou flood na plataforma</li>
-            </ul><br>
-            <p><strong style="color:var(--text);">5. Privacidade e Dados</strong></p>
-            <p>Seus dados pessoais são armazenados de forma criptografada e não são compartilhados com terceiros. Utilizamos suas informações exclusivamente para o funcionamento da plataforma e recuperação de conta.</p><br>
-            <p><strong style="color:var(--text);">6. Propriedade Intelectual</strong></p>
-            <p>O conteúdo publicado por você é de sua responsabilidade. Ao publicar na plataforma, você concede ao Tiwitter Social o direito de exibir esse conteúdo para outros usuários.</p><br>
-            <p><strong style="color:var(--text);">7. Suspensão e Exclusão</strong></p>
-            <p>O Tiwitter Social reserva-se o direito de suspender ou excluir contas que violem estes termos, sem necessidade de aviso prévio ou reembolso.</p><br>
-            <p><strong style="color:var(--text);">8. Limitação de Responsabilidade</strong></p>
-            <p>O Tiwitter Social não se responsabiliza por danos diretos, indiretos ou consequentes resultantes do uso ou incapacidade de uso da plataforma, incluindo perda de dados ou interrupções de serviço.</p><br>
-            <p><strong style="color:var(--text);">9. Alterações nos Termos</strong></p>
-            <p>Estes termos podem ser atualizados a qualquer momento. O uso continuado da plataforma após alterações implica na aceitação dos novos termos.</p><br>
-            <p><strong style="color:var(--text);">10. Contato</strong></p>
-            <p>Em caso de dúvidas, entre em contato através das mensagens privadas com a administração da plataforma.</p>
+                <li>Cumprir estes Termos de Uso;</li>
+                <li>Respeitar os demais usuários;</li>
+                <li>Utilizar a plataforma de maneira legal e responsável;</li>
+                <li>Fornecer informações verdadeiras ao criar sua conta;</li>
+                <li>Não utilizar a plataforma para atividades ilícitas;</li>
+                <li>Respeitar os direitos autorais, de imagem e de propriedade intelectual de terceiros.</li>
+            </ul>
+            <p>Se você não concordar com estes termos, deverá interromper o uso da plataforma.</p><br>
+
+            <p><strong style="color:var(--text);">3. Criação e Responsabilidade da Conta</strong></p>
+            <p>Para utilizar determinadas funcionalidades do Tiwitter, poderá ser necessário criar uma conta. Ao criar uma conta, o usuário é responsável por:</p>
+            <ul style="margin-left:20px;margin-top:8px;">
+                <li>Fornecer informações corretas e atualizadas;</li>
+                <li>Manter suas credenciais de acesso em segurança;</li>
+                <li>Não compartilhar sua senha com terceiros;</li>
+                <li>Não utilizar a conta de outra pessoa sem autorização;</li>
+                <li>Informar qualquer acesso não autorizado à sua conta.</li>
+            </ul>
+            <p>Cada usuário é responsável pelas atividades realizadas por meio de sua própria conta.</p>
+            <p>O Tiwitter poderá suspender ou encerrar contas que violem estes Termos de Uso.</p><br>
+
+            <p><strong style="color:var(--text);">4. Idade Mínima</strong></p>
+            <p>O Tiwitter não é destinado a pessoas que não possuam idade suficiente para utilizar legalmente serviços dessa natureza.</p>
+            <p>Ao criar uma conta, o usuário declara possuir a idade mínima de 18 anos, exigida pela legislação aplicável.</p>
+            <p>Caso seja identificado que uma conta foi criada em desacordo com esta regra, ela poderá ser removida.</p><br>
+
+            <p><strong style="color:var(--text);">5. Publicação de Conteúdo</strong></p>
+            <p>Os usuários podem publicar textos, imagens, comentários e outros conteúdos permitidos pela plataforma.</p>
+            <p>O usuário permanece responsável pelo conteúdo que publicar.</p>
+            <p>Ao publicar conteúdo no Tiwitter, o usuário declara que:</p>
+            <ul style="margin-left:20px;margin-top:8px;">
+                <li>Possui os direitos necessários para publicá-lo;</li>
+                <li>Não está violando direitos autorais de terceiros;</li>
+                <li>Não está violando direitos de imagem;</li>
+                <li>Não está publicando informações obtidas de maneira ilegal;</li>
+                <li>O conteúdo não viola estes Termos de Uso ou a legislação aplicável.</li>
+            </ul>
+            <p>O Tiwitter não reivindica a propriedade do conteúdo criado originalmente pelo usuário.</p>
+            <p>Entretanto, para possibilitar o funcionamento da plataforma, o usuário concede ao Tiwitter uma licença limitada e não exclusiva para hospedar, armazenar, reproduzir e exibir o conteúdo dentro dos recursos da própria plataforma.</p><br>
+
+            <p><strong style="color:var(--text);">6. Conteúdos Proibidos</strong></p>
+            <p>É proibido utilizar o Tiwitter para publicar, compartilhar ou promover conteúdos que:</p>
+            <ul style="margin-left:20px;margin-top:8px;">
+                <li>Incentivem violência contra pessoas ou grupos;</li>
+                <li>Promovam terrorismo ou organizações criminosas;</li>
+                <li>Envolvam exploração ou abuso sexual;</li>
+                <li>Envolvam exploração sexual infantil;</li>
+                <li>Incentivem atividades criminosas;</li>
+                <li>Promovam ameaças ou perseguição;</li>
+                <li>Contenham discurso de ódio direcionado a pessoas ou grupos;</li>
+                <li>Divulguem dados pessoais de terceiros sem autorização;</li>
+                <li>Incentivem automutilação ou suicídio;</li>
+                <li>Envolvam golpes, fraudes ou tentativas de enganar usuários;</li>
+                <li>Distribuam malware, vírus ou outros softwares maliciosos;</li>
+                <li>Infrinjam direitos autorais ou propriedade intelectual;</li>
+                <li>Contenham spam em excesso;</li>
+                <li>Sejam utilizados para práticas de phishing ou roubo de credenciais;</li>
+                <li>Sejam utilizados para qualquer atividade ilegal.</li>
+            </ul>
+            <p>O Tiwitter poderá remover conteúdos que violem estas regras.</p><br>
+
+            <p><strong style="color:var(--text);">7. Assédio e Comportamento Abusivo</strong></p>
+            <p>O Tiwitter busca proporcionar um ambiente em que os usuários possam interagir de maneira respeitosa.</p>
+            <p>Não são permitidos comportamentos como:</p>
+            <ul style="margin-left:20px;margin-top:8px;">
+                <li>Ameaças;</li>
+                <li>Perseguição;</li>
+                <li>Intimidação;</li>
+                <li>Assédio repetitivo;</li>
+                <li>Divulgação de informações pessoais para prejudicar alguém;</li>
+                <li>Criação de contas falsas com a finalidade de prejudicar terceiros;</li>
+                <li>Campanhas coordenadas de abuso;</li>
+                <li>Incentivo à violência contra outro usuário.</li>
+            </ul>
+            <p>Discussões, críticas e opiniões diferentes são permitidas, desde que não ultrapassem os limites estabelecidos por estes Termos.</p><br>
+
+            <p><strong style="color:var(--text);">8. Spam, Automação e Manipulação</strong></p>
+            <p>Não é permitido utilizar sistemas automatizados ou mecanismos destinados a:</p>
+            <ul style="margin-left:20px;margin-top:8px;">
+                <li>Criar grandes quantidades de contas falsas;</li>
+                <li>Enviar spam;</li>
+                <li>Manipular artificialmente curtidas, seguidores ou visualizações;</li>
+                <li>Interferir no funcionamento normal da plataforma;</li>
+                <li>Realizar ataques automatizados;</li>
+                <li>Tentar obter acesso não autorizado a contas ou sistemas;</li>
+                <li>Explorar falhas de segurança de maneira prejudicial.</li>
+            </ul>
+            <p>O uso de ferramentas automatizadas poderá ser permitido quando expressamente autorizado pelo Tiwitter.</p><br>
+
+            <p><strong style="color:var(--text);">9. Propriedade Intelectual</strong></p>
+            <p>O software, código, identidade visual, logotipo, nome, design e demais elementos desenvolvidos especificamente para o Tiwitter podem estar protegidos por direitos de propriedade intelectual.</p>
+            <p>É proibido copiar, modificar, distribuir, vender ou utilizar esses elementos comercialmente sem autorização, quando protegidos por direitos aplicáveis.</p>
+            <p>Conteúdos publicados pelos usuários pertencem aos respectivos usuários ou aos seus legítimos titulares, conforme o caso.</p><br>
+
+            <p><strong style="color:var(--text);">10. Privacidade e Dados Pessoais</strong></p>
+            <p>O Tiwitter poderá coletar e processar informações necessárias para fornecer seus serviços, como informações de cadastro, dados de utilização e informações relacionadas às interações realizadas dentro da plataforma.</p>
+            <p>O tratamento de dados pessoais deverá observar a legislação aplicável, incluindo, quando aplicável, a <strong style="color:var(--text);">Lei Geral de Proteção de Dados Pessoais (LGPD)</strong>.</p>
+            <p>Informações adicionais sobre coleta, utilização, armazenamento e compartilhamento de dados poderão ser apresentadas em uma <strong style="color:var(--text);">Política de Privacidade</strong> específica.</p><br>
+
+            <p><strong style="color:var(--text);">11. Segurança</strong></p>
+            <p>O Tiwitter busca adotar medidas razoáveis para proteger a plataforma e as informações dos usuários.</p>
+            <p>Entretanto, nenhum sistema conectado à internet pode ser considerado completamente seguro.</p>
+            <p>O usuário reconhece que existem riscos associados à utilização de serviços online e deve manter suas credenciais protegidas.</p>
+            <p>Caso identifique uma vulnerabilidade de segurança, o usuário deverá comunicá-la aos responsáveis pelo Tiwitter de maneira responsável, evitando explorar ou divulgar a falha para causar prejuízos.</p><br>
+
+            <p><strong style="color:var(--text);">12. Disponibilidade do Serviço</strong></p>
+            <p>O Tiwitter poderá passar por períodos de manutenção, atualização, indisponibilidade ou instabilidade.</p>
+            <p>A plataforma poderá ser modificada, suspensa ou encerrada, total ou parcialmente, a qualquer momento, especialmente quando necessário para manutenção, segurança, atualização ou evolução do projeto.</p>
+            <p>O Tiwitter não garante que todos os recursos estarão disponíveis continuamente ou sem interrupções.</p><br>
+
+            <p><strong style="color:var(--text);">13. Suspensão e Encerramento de Contas</strong></p>
+            <p>O Tiwitter poderá limitar, suspender ou encerrar uma conta quando houver:</p>
+            <ul style="margin-left:20px;margin-top:8px;">
+                <li>Violação destes Termos de Uso;</li>
+                <li>Atividade ilegal;</li>
+                <li>Fraude;</li>
+                <li>Abuso da plataforma;</li>
+                <li>Tentativas de comprometer a segurança;</li>
+                <li>Uso automatizado não autorizado;</li>
+                <li>Comportamento que represente risco aos demais usuários ou à plataforma.</li>
+            </ul>
+            <p>Sempre que razoavelmente possível, poderão ser adotadas medidas proporcionais à gravidade da violação.</p><br>
+
+            <p><strong style="color:var(--text);">14. Responsabilidade pelo Conteúdo</strong></p>
+            <p>O Tiwitter funciona como uma plataforma para publicação e interação entre usuários.</p>
+            <p>Cada usuário é responsável pelo conteúdo que publica e pelas consequências decorrentes de suas próprias publicações.</p>
+            <p>O Tiwitter poderá adotar medidas para remover conteúdos que violem estes Termos, mas não garante que todo conteúdo inadequado será identificado ou removido imediatamente.</p><br>
+
+            <p><strong style="color:var(--text);">15. Limitação de Responsabilidade</strong></p>
+            <p>Na extensão permitida pela legislação aplicável, o Tiwitter e seus responsáveis não serão responsáveis por danos decorrentes de:</p>
+            <ul style="margin-left:20px;margin-top:8px;">
+                <li>Interrupções ou indisponibilidade da plataforma;</li>
+                <li>Perda de dados causada por fatores fora de seu controle;</li>
+                <li>Conteúdos publicados por usuários;</li>
+                <li>Uso inadequado da plataforma;</li>
+                <li>Acesso não autorizado decorrente da negligência do próprio usuário;</li>
+                <li>Falhas ou serviços fornecidos por terceiros.</li>
+            </ul>
+            <p>Nada neste documento tem a intenção de excluir direitos ou responsabilidades que não possam ser legalmente excluídos.</p><br>
+
+            <p><strong style="color:var(--text);">16. Alterações nos Termos</strong></p>
+            <p>Estes Termos de Uso poderão ser modificados para refletir mudanças na plataforma, na legislação ou nos recursos disponibilizados.</p>
+            <p>Quando houver alterações relevantes, uma nova versão poderá ser disponibilizada na plataforma.</p>
+            <p>A continuidade do uso do Tiwitter após a publicação de alterações poderá representar a aceitação dos novos termos, quando permitido pela legislação aplicável.</p><br>
+
+            <p><strong style="color:var(--text);">17. Legislação Aplicável</strong></p>
+            <p>Estes Termos de Uso deverão ser interpretados de acordo com a legislação aplicável.</p>
+            <p>Quando o usuário estiver localizado no Brasil, serão observadas, entre outras normas aplicáveis, a legislação brasileira e a <strong style="color:var(--text);">Lei nº 13.709/2018 (LGPD)</strong>.</p>
+            <p>Eventuais conflitos deverão ser resolvidos de acordo com as regras de competência previstas na legislação aplicável.</p><br>
+
+            <p><strong style="color:var(--text);">18. Contato</strong></p>
+            <p>Caso tenha dúvidas, queira denunciar um conteúdo ou precise entrar em contato com os responsáveis pelo Tiwitter, utilize os canais oficiais disponibilizados na plataforma.</p>
+            <p><strong style="color:var(--text);">Projeto:</strong> Tiwitter<br>
+            <strong style="color:var(--text);">Tipo:</strong> Rede social independente / projeto de paródia<br>
+            <strong style="color:var(--text);">Responsável:</strong> Rodrigo Correa do Nascimento<br>
+            <strong style="color:var(--text);">E-mail:</strong> rodrigonasc24@gmail.com<br>
+
+            <p><strong style="color:var(--text);">19. Aceitação</strong></p>
+            <p>Ao selecionar <strong style="color:var(--text);">"Aceito os Termos de Uso"</strong>, criar uma conta ou utilizar o Tiwitter, o usuário declara que leu e compreendeu estes Termos de Uso e concorda em respeitá-los.</p>
+            <p><strong style="color:var(--text);">Obrigado por usar o Tiwitter. 🐦</strong></p>
+            <p><em>O Tiwitter é um projeto independente e paródico e não possui afiliação com o X, Twitter ou qualquer empresa relacionada a essas marcas.</em></p>
         </div>
         <button class="btn-primary" onclick="aceitarTermo()" style="margin-top:24px;width:100%;">
             <i class="fas fa-check"></i> Li e aceito os Termos de Uso
