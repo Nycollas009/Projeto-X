@@ -1521,6 +1521,7 @@ emoji-picker.active { display: block; animation: postIn 0.2s ease; }
 }
 /* ARRUMANDO TELA INICIAL NO CELULAR*/
 
+
 @media (max-width: 640px) {
         #login-container {
             height: 100dvh;
