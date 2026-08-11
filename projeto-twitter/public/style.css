@@ -1519,9 +1519,15 @@ emoji-picker.active { display: block; animation: postIn 0.2s ease; }
     :root { --dock-width: 72px; }
     .main-content { margin-left: calc(var(--dock-width) + 24px); }
 }
+/* ARRUMANDO TELA INICIAL NO CELULAR*/
 
 @media (max-width: 640px) {
-    
+        #login-container {
+            height: 100dvh;
+            background-size: cover;
+            background-position: center;
+            animation: none;
+        }
      /* Login/Cadastro responsivo */
     .tela-login.active {
         width: 92vw;
