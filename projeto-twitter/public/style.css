@@ -153,9 +153,10 @@ body.large-text { font-size: 130%; }
 }
 
 .login-logo-img {
-    width: 90%;
-    height: 90%;
-    object-fit: contain;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
     display: block;
 }
 
@@ -1529,7 +1530,7 @@ emoji-picker.active { display: block; animation: postIn 0.2s ease; }
         overflow: hidden;
         overscroll-behavior: none;
     }
-    
+
         #login-container {
             height: 100dvh;
             background-size: cover;
