@@ -222,9 +222,10 @@ body.large-text { font-size: 130%; }
 
 
 .login-logo-wrapper {
-    width: 80px;
-    height: 80px;
+    width: 90px;
+    height: 90px;
     border-radius: 50%;
+    overflow: hidden;
     background: linear-gradient(135deg, var(--primary), var(--secondary));
     display: flex;
     align-items: center;
