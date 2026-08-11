@@ -1523,6 +1523,13 @@ emoji-picker.active { display: block; animation: postIn 0.2s ease; }
 
 
 @media (max-width: 640px) {
+    html, body {
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+        overscroll-behavior: none;
+    }
+    
         #login-container {
             height: 100dvh;
             background-size: cover;
@@ -1577,7 +1584,6 @@ emoji-picker.active { display: block; animation: postIn 0.2s ease; }
     .main-content { margin-left: 0; margin-right: 0; margin-bottom: 76px; padding: 16px; }
     .sidebar-nav.expanded { width: 100%; }
 }
-
 
 
 body.tema-escuro {
