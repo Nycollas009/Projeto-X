@@ -5,9 +5,9 @@ const fs = require('fs');
 const cors = require('cors');
 const http = require('http');
 const WebSocket = require('ws');
-const jwt = require('jsonwebtoken'); // npm install jsonwebtoken
+const jwt = require('jsonwebtoken'); //jsonwebtoken
 const bcrypt = require('bcrypt');
-const helmet = require('helmet'); // npm install helmet
+const helmet = require('helmet'); //helmet
 
 const app    = express();
 const server = http.createServer(app);
@@ -31,8 +31,8 @@ app.use(helmet({ contentSecurityPolicy: false }));
 // Só os domínios abaixo podem chamar essa API diretamente pelo navegador.
 // Antes, cors() sem opções liberava geral para qualquer site.
 const origensPermitidas = [
-    'https://meu-twitter-projeto-x.onrender.com', // seu site em produção
-    'http://localhost:3000',                       // teste local
+    'https://meu-twitter-projeto-x.onrender.com', 
+    'http://localhost:3000',                       
 ];
 app.use(cors({
     origin: (origin, callback) => {
@@ -59,9 +59,9 @@ if (!fs.existsSync(DB_FILE)) {
 const readDB = () => JSON.parse(fs.readFileSync(DB_FILE, 'utf-8'));
 const writeDB = (data) => fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2));
 
-// ════════════════════════════════════════
+
 //  JWT — geração e verificação
-// ════════════════════════════════════════
+
 
 function gerarToken(user) {
     // O token guarda só o id — é a "identidade" que o servidor vai confiar,
