@@ -13,7 +13,7 @@ const app    = express();
 const server = http.createServer(app);
 const port   = process.env.PORT || 3000;
 
-// ⚠️ Coloque isso no .env: JWT_SECRET=uma-string-longa-e-aleatoria
+
 const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET) {
     console.error('❌ JWT_SECRET não definido no .env — o servidor não vai iniciar sem isso.');
